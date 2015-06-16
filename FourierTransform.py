@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # -*- coding: utf-8 -*-
 """
 Created on Fri Jun 05 11:45:39 2015
@@ -169,3 +171,4 @@ fouriertransform(T, result, E)
 #ftreverse = fouriertransform(np.linspace(-(1/3)*pi*n/2 , (1/3)*pi*n/2, n),
 #                             result, np.linspace (-1.5, 1.5, n))
 #plotfouriertransform(data, ftreverse)
+pylab.show()
