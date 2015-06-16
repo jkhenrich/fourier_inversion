@@ -84,7 +84,7 @@ def inversetransform(e, data, t):
     initialarraysize = data.size
     indices = np.arange(initialarraysize)
     iftdata = np.empty_like(data, dtype='complex')
-    print iftdata.dtype
+#    print iftdata.dtype
     for index in indices:
         transformedvalue = np.trapz(data* exp(1j*e*t[index]), x=e)
         #np.put(iftdata, index, transformedvalue)
@@ -141,11 +141,11 @@ def fouriertransform(t, data, e):
     """
     initialarraysize = data.size
     indices = np.arange(initialarraysize)
-    ftdata = data.copy()
+    ftdata = np.empty_like(data, dtype='complex')
     for index in indices:
         transformedvalue = np.trapz(data* exp(-1*1j*t*e[index]), x=t)
-        np.put(ftdata, index, transformedvalue)
-    print ftdata
+        ftdata[index] = transformedvalue
+#    print ftdata
     return ftdata
 
 def plotfouriertransform(data, fouriertransform):
