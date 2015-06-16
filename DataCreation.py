@@ -13,6 +13,27 @@ import pylab
 import numpy as np
 from numpy import exp, pi, sqrt
 
+def upload_data():
+    """
+    upload_data takes data from previously exported csv file, and uploads it
+    to be used in future code.
+    """
+    newdata = np.loadtxt('DataFiles\Mo72Cr30_HT4K_dyn', dtype='float', delimiter=',')
+#    newdata = np.loadtxt(str(raw_input('Enter the name of data file to load:')),
+#                         dtype='float', delimiter=',')
+    print newdata.shape
+    return newdata
+
+
+def choose_data_from_file(data, desiredcolumn): #data must be a e.size x 4
+    """
+    choose_data_to_transform takes a multi-dimensional array and reports the
+    nth column of the array for future use.
+    """
+    extracteddata = data
+    extracteddata = extracteddata.T
+    return extracteddata[desiredcolumn, :]
+#    return extracteddata[int(raw_input('Column of Desired Data: ')),:]
 
 def create_lorentzian(e):
     """
@@ -79,7 +100,7 @@ def show_data(e, s, lsig, gsig, convosig, rn_convosig):
     pylab.plot(e, lsig, '-o', label='Lorentzian')
     pylab.plot(e, gsig, '-o', label='Gaussian')
     pylab.plot(e, convosig, '-o', label='Convolution %g'%s)
-    pylab.plot(e, rn_convosig, '-o', label='RandomNoiseConvolution %g'%s)
+#    pylab.plot(e, rn_convosig, '-o', label='RandomNoiseConvolution %g'%s)
     pylab.legend()
     pylab.show()
 
@@ -155,7 +176,7 @@ def demo1():
                           raw_input("Choose a general filename: "))
 
 def demo2():
-    create_data_to_export(np.linspace(-1.5, 1.5, 2251), [0.01],
+    create_data_to_export(choose_data_from_file(upload_data(), 0), [0.2522],
                           raw_input("Choose a general filename: "))
 
 demo2()
