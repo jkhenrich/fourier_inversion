@@ -184,7 +184,14 @@ def test_inversion():
     E = np.linspace(-width*sigma+mu, width*sigma+mu, nE)
     t = np.linspace(-width/sigma, width/sigma, nt)
     y = exp(-0.5*(E-mu)**2/sigma**2)/sqrt(2*pi*sigma**2)
+
+    # F(0) = \int f(x) e^{-i x 0} dx = \int f(x) e^0 dx = \int f(x)
+    ft_zero = fouriertransform(E, y, [0])
+    y_area = np.trapz(x=E, y=y)
+    assert abs(y_area - ft_zero) <  1e-8, "ft(0): %g, Sy: %g"%(ft_zero, y_area)
     
+    # Fourier transform should be invertible, in that the inverse transform
+    # of the forward transform should match the original function.
     Y = fouriertransform(E, y, t)
     yt = inversetransform(t, Y, E)
     if 0:
@@ -197,6 +204,7 @@ def test_inversion():
         pylab.legend()
         pylab.show()
     assert np.all(abs(y-yt) < 1e-12), "max err: %g"%max(abs(y-yt))
+
 
 if __name__ == "__main__":
     demo()
