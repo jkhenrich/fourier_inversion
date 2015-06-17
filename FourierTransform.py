@@ -26,9 +26,9 @@ def upload_data():
     return newdata
 
 
-def choose_data_to_transform(data): #data must be a e.size x 4
+def choose_data_from_file(data): #data must be a e.size x 4
     """
-    choose_data_to_transform takes a multi-dimensional array and reports the
+    choose_data_from_file takes a multi-dimensional array and reports the
     nth column of the array for future use.
     """
     extracteddata = data
@@ -96,13 +96,14 @@ def inversetransform(e, data, t):
 
 def plotift(data, iftdata):
     rowused = 0 #Make sure this matchs the integer in return extracteddata[0, :]
-                #from choose_data_to_transform(data)
+                #from choose_data_from_file(data)
     n = len(data)
     E = np.linspace(-1.5, 1.5, n)
     t = np.linspace(-(1/3)*pi*n/2, (1/3)*pi*n/2, n)
     sig = 0.01
     pylab.clf()
     pylab.plot(E, data, '-o', label='Original Data')
+    pylab.plot(E)
     if rowused == 0:
         pylab.plot(t, fourier_transform_lorentzian(t), label='Lorentzian Transformed Exact')
         pylab.plot(t, iftdata, '-o', label='Inverse Fourier Transform')
@@ -159,12 +160,20 @@ def plotfouriertransform(data, fouriertransform):
     pylab.legend()
 
 
+<<<<<<< HEAD
+data_to_use = choose_data_from_file(upload_data())
+n = len(data_to_use)
+E = np.linspace(-1.5, 1.5, n)
+T = np.linspace(-(1/3)*pi*n/2, (1/3)*pi*n/2, n)
+result = inversetransform(E, data_to_use, T)
+=======
 def demo():
     data_to_use = choose_data_to_transform(upload_data())
     n = len(data_to_use)
     E = np.linspace(-1.5, 1.5, n)
     T = np.linspace(-(1/3)*pi*n/2, (1/3)*pi*n/2, n)
     result = inversetransform(E, data_to_use, T)
+>>>>>>> 8de0d9d42b2938ae4518583c8a972f8595e131ba
         #fouriertransform(inversetransform(data))
     #print "norm",np.linalg.norm(data-result)
     plotift(data_to_use, result)
