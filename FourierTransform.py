@@ -206,5 +206,17 @@ def test_inversion():
     assert np.all(abs(y-yt) < 1e-12), "max err: %g"%max(abs(y-yt))
 
 
+    # Fourier transform of a Gaussian using unitary angular frequency
+    # is a Gaussian of 1/sigma, scaled so that the peak is 1.  Any shift
+    # in the center corresponds to a phase shift of e^{-i mu t}
+    # Note: to satisfy the F(0) constraint, the exponential should not be
+    # scaled by 1/sqrt(2 pi sigma^2), however the Fourier Transform page 
+    # suggests that the result should be scaled by 1/sqrt(2 pi).  The
+    # wiki page, if wrong, should be corrected.  Here is a source:
+    #    http://homepage.tudelft.nl/e3q6n/education/tn254/2002/Fourier%20transform%20of%20a%20Gaussian.pdf
+    # that suggests it is missing a factor of sqrt{2 pi} in front.
+    Ytheory = exp(-1j*mu*t) * exp(-0.5*t**2*sigma**2)
+    assert np.all(abs(Y-Ytheory) < 1e-12), "max err: %g"%max(abs(Y-Ytheory))
+
 if __name__ == "__main__":
     demo()
