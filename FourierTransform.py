@@ -160,21 +160,13 @@ def plotfouriertransform(data, fouriertransform):
     pylab.legend()
 
 
-<<<<<<< HEAD
-data_to_use = choose_data_from_file(upload_data())
-n = len(data_to_use)
-E = np.linspace(-1.5, 1.5, n)
-T = np.linspace(-(1/3)*pi*n/2, (1/3)*pi*n/2, n)
-result = inversetransform(E, data_to_use, T)
-=======
 def demo():
     data_to_use = choose_data_to_transform(upload_data())
     n = len(data_to_use)
     E = np.linspace(-1.5, 1.5, n)
     T = np.linspace(-(1/3)*pi*n/2, (1/3)*pi*n/2, n)
     result = inversetransform(E, data_to_use, T)
->>>>>>> 8de0d9d42b2938ae4518583c8a972f8595e131ba
-        #fouriertransform(inversetransform(data))
+    #fouriertransform(inversetransform(data))
     #print "norm",np.linalg.norm(data-result)
     plotift(data_to_use, result)
     fouriertransform(T, result, E)
