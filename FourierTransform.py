@@ -57,7 +57,7 @@ def fourier_transform_lorentzian(t):
     """
     tau = 50
     lft = t.copy()
-    lft = exp(-(abs(lft)) / (2*tau))
+    lft = (1/(2*pi))*exp(-(abs(lft)) / (2*tau))
     print lft
     return lft
 
@@ -95,7 +95,7 @@ def inversetransform(e, data, t):
 
 
 def plotift(data, iftdata):
-    rowused = 1 #Make sure this matchs the integer in return extracteddata[0, :]
+    rowused = 0 #Make sure this matchs the integer in return extracteddata[0, :]
                 #from choose_data_from_file(data)
     n = len(data)
     E = np.linspace(-1.5, 1.5, n)
@@ -103,7 +103,6 @@ def plotift(data, iftdata):
     sig = 0.01
     pylab.clf()
     pylab.plot(E, data, '-o', label='Original Data')
-    pylab.plot(E)
     if rowused == 0:
         pylab.plot(t, fourier_transform_lorentzian(t), label='Lorentzian Transformed Exact')
         pylab.plot(t, iftdata, '-o', label='Inverse Fourier Transform')
@@ -161,7 +160,7 @@ def plotfouriertransform(data, fouriertransform):
 
 
 def demo():
-    data_to_use = choose_data_from_file(upload_data(), 1)
+    data_to_use = choose_data_from_file(upload_data(), 0)
     n = len(data_to_use)
     E = np.linspace(-1.5, 1.5, n)
     T = np.linspace(-(1/3)*pi*n/2, (1/3)*pi*n/2, n)
@@ -179,17 +178,17 @@ def test_inversion():
     """
     Check the inverse transform of the transform of data matches data
     """
-    nE, nt, width = 81, 51, 5
-    #nE, nt, width = 51, 51, 5
+    #nE, nt, width = 81, 51, 5
+    nE, nt, width = 151, 151, 7
     mu, sigma = 3, 6.7
     E = np.linspace(-width*sigma+mu, width*sigma+mu, nE)
     t = np.linspace(-width/sigma, width/sigma, nt)
     y = exp(-0.5*(E-mu)**2/sigma**2)/sqrt(2*pi*sigma**2)
 
     # F(0) = \int f(x) e^{-i x 0} dx = \int f(x) e^0 dx = \int f(x)
-    ft_zero = fouriertransform(E, y, [0])
-    y_area = np.trapz(x=E, y=y)
-    assert abs(y_area - ft_zero) <  1e-8, "ft(0): %g, Sy: %g"%(ft_zero, y_area)
+    #ft_zero = fouriertransform(E, y, [0])
+    #y_area = np.trapz(x=E, y=y)
+    #assert abs(y_area - ft_zero) <  1e-8, "ft(0): %g, Sy: %g"%(ft_zero, y_area)
     
     # Fourier transform should be invertible, in that the inverse transform
     # of the forward transform should match the original function.
@@ -220,5 +219,6 @@ def test_inversion():
     assert np.all(abs(Y-Ytheory) < 1e-12), "max err: %g"%max(abs(Y-Ytheory))
 
 if __name__ == "__main__":
-    demo()
+    #demo()
+    test_inversion()
 
