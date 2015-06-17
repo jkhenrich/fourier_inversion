@@ -11,7 +11,7 @@ from __future__ import division
 
 import pylab
 import numpy as np
-from numpy import exp, pi
+from numpy import exp, pi, sqrt
 
 
 def upload_data():
@@ -160,16 +160,60 @@ def plotfouriertransform(data, fouriertransform):
     pylab.legend()
 
 
+<<<<<<< HEAD
 data_to_use = choose_data_from_file(upload_data())
 n = len(data_to_use)
 E = np.linspace(-1.5, 1.5, n)
 T = np.linspace(-(1/3)*pi*n/2, (1/3)*pi*n/2, n)
 result = inversetransform(E, data_to_use, T)
+=======
+def demo():
+    data_to_use = choose_data_to_transform(upload_data())
+    n = len(data_to_use)
+    E = np.linspace(-1.5, 1.5, n)
+    T = np.linspace(-(1/3)*pi*n/2, (1/3)*pi*n/2, n)
+    result = inversetransform(E, data_to_use, T)
+>>>>>>> 8de0d9d42b2938ae4518583c8a972f8595e131ba
         #fouriertransform(inversetransform(data))
-#print "norm",np.linalg.norm(data-result)
-plotift(data_to_use, result)
-fouriertransform(T, result, E)
-#ftreverse = fouriertransform(np.linspace(-(1/3)*pi*n/2 , (1/3)*pi*n/2, n),
-#                             result, np.linspace (-1.5, 1.5, n))
-#plotfouriertransform(data, ftreverse)
-pylab.show()
+    #print "norm",np.linalg.norm(data-result)
+    plotift(data_to_use, result)
+    fouriertransform(T, result, E)
+    #ftreverse = fouriertransform(np.linspace(-(1/3)*pi*n/2 , (1/3)*pi*n/2, n),
+    #                             result, np.linspace (-1.5, 1.5, n))
+    #plotfouriertransform(data, ftreverse)
+    pylab.show()
+
+def test_inversion():
+    """
+    Check the inverse transform of the transform of data matches data
+    """
+    nE, nt, width = 81, 51, 5
+    #nE, nt, width = 51, 51, 5
+    mu, sigma = 3, 6.7
+    E = np.linspace(-width*sigma+mu, width*sigma+mu, nE)
+    t = np.linspace(-width/sigma, width/sigma, nt)
+    y = exp(-0.5*(E-mu)**2/sigma**2)/sqrt(2*pi*sigma**2)
+
+    # F(0) = \int f(x) e^{-i x 0} dx = \int f(x) e^0 dx = \int f(x)
+    ft_zero = fouriertransform(E, y, [0])
+    y_area = np.trapz(x=E, y=y)
+    assert abs(y_area - ft_zero) <  1e-8, "ft(0): %g, Sy: %g"%(ft_zero, y_area)
+    
+    # Fourier transform should be invertible, in that the inverse transform
+    # of the forward transform should match the original function.
+    Y = fouriertransform(E, y, t)
+    yt = inversetransform(t, Y, E)
+    if 0:
+        pylab.subplot(211)
+        pylab.plot(E,abs(y),'.',label='data')
+        pylab.plot(E,abs(yt),'.',label='ift(ft(data))')
+        pylab.legend()
+        pylab.subplot(212)
+        pylab.plot(t, abs(Y),'.', label='ft(data)')
+        pylab.legend()
+        pylab.show()
+    assert np.all(abs(y-yt) < 1e-12), "max err: %g"%max(abs(y-yt))
+
+
+if __name__ == "__main__":
+    demo()
