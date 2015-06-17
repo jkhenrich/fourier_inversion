@@ -26,14 +26,14 @@ def upload_data():
     return newdata
 
 
-def choose_data_from_file(data): #data must be a e.size x 4
+def choose_data_from_file(data, desiredcolumn): #data must be a e.size x 4
     """
     choose_data_from_file takes a multi-dimensional array and reports the
     nth column of the array for future use.
     """
     extracteddata = data
     extracteddata = extracteddata.T
-    return extracteddata[0, :]
+    return extracteddata[desiredcolumn, :]
 #    return extracteddata[int(raw_input('Column of Desired Data: ')),:]
 
 
@@ -44,7 +44,7 @@ def fourier_transform_gaussian(t, sig):
     Fourier Transform from the same sigma from a Normal Gaussian of
     the form exp(-e**2 / (2 * sig**2)) / (sig * (sqrt(2 * pi))).
     """
-    FRQe = exp(-(t**2) * (sig**2) / 2)
+    FRQe = (1/(2*pi))*exp(-(t**2) * (sig**2) / 2)
     print FRQe
     return FRQe #returns an array of points on the Gaussian curve
 
@@ -87,7 +87,7 @@ def inversetransform(e, data, t):
     iftdata = np.empty_like(data, dtype='complex')
 #    print iftdata.dtype
     for index in indices:
-        transformedvalue = np.trapz(data* exp(1j*e*t[index]), x=e)
+        transformedvalue = (1/(2*pi))*np.trapz(data* exp(1j*e*t[index]), x=e)
         #np.put(iftdata, index, transformedvalue)
         iftdata[index] = transformedvalue
     print iftdata
@@ -95,7 +95,7 @@ def inversetransform(e, data, t):
 
 
 def plotift(data, iftdata):
-    rowused = 0 #Make sure this matchs the integer in return extracteddata[0, :]
+    rowused = 1 #Make sure this matchs the integer in return extracteddata[0, :]
                 #from choose_data_from_file(data)
     n = len(data)
     E = np.linspace(-1.5, 1.5, n)
@@ -161,7 +161,7 @@ def plotfouriertransform(data, fouriertransform):
 
 
 def demo():
-    data_to_use = choose_data_to_transform(upload_data())
+    data_to_use = choose_data_from_file(upload_data(), 1)
     n = len(data_to_use)
     E = np.linspace(-1.5, 1.5, n)
     T = np.linspace(-(1/3)*pi*n/2, (1/3)*pi*n/2, n)
@@ -169,7 +169,7 @@ def demo():
     #fouriertransform(inversetransform(data))
     #print "norm",np.linalg.norm(data-result)
     plotift(data_to_use, result)
-    fouriertransform(T, result, E)
+    #fouriertransform(T, result, E)
     #ftreverse = fouriertransform(np.linspace(-(1/3)*pi*n/2 , (1/3)*pi*n/2, n),
     #                             result, np.linspace (-1.5, 1.5, n))
     #plotfouriertransform(data, ftreverse)
@@ -221,3 +221,4 @@ def test_inversion():
 
 if __name__ == "__main__":
     demo()
+
