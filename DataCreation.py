@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # -*- coding: utf-8 -*-
+#This program is public domain
 """
 Created on Mon Jun 01 15:39:51 2015
 

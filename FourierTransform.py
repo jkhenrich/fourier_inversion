@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # -*- coding: utf-8 -*-
+#This program is public domain
 """
 Created on Fri Jun 05 11:45:39 2015
 
@@ -142,6 +143,7 @@ def fouriertransform(t, data, e):
     """
     initialarraysize = data.size
     indices = np.arange(initialarraysize)
+    #print indices
     ftdata = np.empty_like(data, dtype='complex')
     for index in indices:
         transformedvalue = np.trapz(data* exp(-1*1j*t*e[index]), x=t)
@@ -180,15 +182,16 @@ def test_inversion():
     """
     #nE, nt, width = 81, 51, 5
     nE, nt, width = 151, 151, 7
-    mu, sigma = 3, 6.7
+    mu, sigma = 0, 6.7
     E = np.linspace(-width*sigma+mu, width*sigma+mu, nE)
     t = np.linspace(-width/sigma, width/sigma, nt)
     y = exp(-0.5*(E-mu)**2/sigma**2)/sqrt(2*pi*sigma**2)
 
-    # F(0) = \int f(x) e^{-i x 0} dx = \int f(x) e^0 dx = \int f(x)
-    #ft_zero = fouriertransform(E, y, [0])
-    #y_area = np.trapz(x=E, y=y)
-    #assert abs(y_area - ft_zero) <  1e-8, "ft(0): %g, Sy: %g"%(ft_zero, y_area)
+    #F(0) = \int f(x) e^{-i x 0} dx = \int f(x) e^0 dx = \int f(x)
+    ft = fouriertransform(E, y, t)
+    ft_zero = ft[75] #Index must be the center of the matrix
+    y_area = np.trapz(x=E, y=y)
+    assert abs(y_area - ft_zero) <  1e-8, "ft(0): %g, Sy: %g"%(ft_zero, y_area)
     
     # Fourier transform should be invertible, in that the inverse transform
     # of the forward transform should match the original function.
@@ -209,12 +212,6 @@ def test_inversion():
     # Fourier transform of a Gaussian using unitary angular frequency
     # is a Gaussian of 1/sigma, scaled so that the peak is 1.  Any shift
     # in the center corresponds to a phase shift of e^{-i mu t}
-    # Note: to satisfy the F(0) constraint, the exponential should not be
-    # scaled by 1/sqrt(2 pi sigma^2), however the Fourier Transform page 
-    # suggests that the result should be scaled by 1/sqrt(2 pi).  The
-    # wiki page, if wrong, should be corrected.  Here is a source:
-    #    http://homepage.tudelft.nl/e3q6n/education/tn254/2002/Fourier%20transform%20of%20a%20Gaussian.pdf
-    # that suggests it is missing a factor of sqrt{2 pi} in front.
     Ytheory = exp(-1j*mu*t) * exp(-0.5*t**2*sigma**2)
     assert np.all(abs(Y-Ytheory) < 1e-12), "max err: %g"%max(abs(Y-Ytheory))
 
