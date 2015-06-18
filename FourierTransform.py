@@ -175,6 +175,8 @@ def demo1():
                                  result, E)
     plotfouriertransform(data_to_use, ftreverse)
     pylab.show()
+#    Y0theory = (1/(2*pi))*exp(-(abs(T)) / (2*50))   
+#    assert np.all(abs(result-Y0theory) < 1e-12), "max err: %g"%max(abs(result-Y0theory))
     
 def demo2():
     data_to_use = choose_data_from_file(upload_data(), 0)
@@ -184,6 +186,7 @@ def demo2():
     result = fouriertransform(T, data_to_use, E)
     back_to_data = inversetransform(E, result, T)
     plotfouriertransform(data_to_use, back_to_data)
+#    assert np.all(abs(data_to_use - back_to_data) < 1e-12), "max err: %g"%max(abs(data_to_use - back_to_data))
     pylab.show()
     
 
@@ -196,20 +199,21 @@ def test_inversion():
     mu, sigma = 0, 6.7
     E = np.linspace(-width*sigma+mu, width*sigma+mu, nE)
     t = np.linspace(-width/sigma, width/sigma, nt)
-    gamma = 1 / 50
+    tau = 50
+    gamma = 1 / tau
     y0 = (1/pi)*(gamma/2) / (t**2 + (gamma/2)**2)
     y1 = exp(-0.5*(E-mu)**2/sigma**2)/sqrt(2*pi*sigma**2)
     y2 = np.convolve(y0, y1, 'same')
 
     #F(0) = \int f(x) e^{-i x 0} dx = \int f(x) e^0 dx = \int f(x)
-    ft = fouriertransform(E, y1, t)
+    ft = fouriertransform(E, y2, t)
     ft_zero = ft[75] #Index must be the center of the matrix
-    y_area = np.trapz(x=E, y=y1)
+    y_area = np.trapz(x=E, y=y2)
     assert abs(y_area - ft_zero) <  1e-8, "ft(0): %g, Sy: %g"%(ft_zero, y_area)
     
     # Fourier transform should be invertible, in that the inverse transform
     # of the forward transform should match the original function.
-    Y = inversetransform(E, y1, t)
+    Y = inversetransform(E, y2, t)
     yt = fouriertransform(t, Y, E)
 #    if 0:
 #        pylab.subplot(211)
@@ -220,18 +224,19 @@ def test_inversion():
 #        pylab.plot(t, abs(Y),'.', label='ft(data)')
 #        pylab.legend()
 #        pylab.show()
-    assert np.all(abs(y1-yt) < 1e-12), "max err: %g"%max(abs(y1-yt))
+    assert np.all(abs(y2-yt) < 1e-12), "max err: %g"%max(abs(y2-yt))
 
 
     # Fourier transform of a Gaussian using unitary angular frequency
     # is a Gaussian of 1/sigma, scaled so that the peak is 1.  Any shift
     # in the center corresponds to a phase shift of e^{-i mu t}
-    #Y0theory =     
+    Y0theory = (1/(2*pi))*exp(-(abs(t)) / (2*tau))    
     Y1theory = exp(-1j*mu*t) * (1/(2*pi)) * exp(-(t**2) * (sigma**2) / 2)
-    assert np.all(abs(Y-Y1theory) < 1e-12), "max err: %g"%max(abs(Y-Y1theory))
+    Y2theory = 2*pi*Y0theory*Y1theory
+    assert np.all(abs(Y-Y2theory) < 1e-12), "max err: %g"%max(abs(Y-Y2theory))
 
 if __name__ == "__main__":
-    #demo1()
+    demo1()
     #demo2()
-    test_inversion()
+    #test_inversion()
 
