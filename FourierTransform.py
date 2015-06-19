@@ -169,14 +169,13 @@ def demo1():
     result = inversetransform(E, data_to_use, T)
     #fouriertransform(inversetransform(data))
     #print "norm",np.linalg.norm(data-result)
-    plotift(data_to_use, result)
     #fouriertransform(T, result, E)
     ftreverse = fouriertransform(T,
                                  result, E)
     plotfouriertransform(data_to_use, ftreverse)
     pylab.show()
-#    Y0theory = (1/(2*pi))*exp(-(abs(T)) / (2*50))   
-#    assert np.all(abs(result-Y0theory) < 1e-12), "max err: %g"%max(abs(result-Y0theory))
+    Y0theory = (1/(2*pi))*exp(-(abs(T)) / (2*50))   
+    assert np.all(abs(result-Y0theory) < 1e-12), "max err: %g"%max(abs(result-Y0theory))
     
 def demo2():
     data_to_use = choose_data_from_file(upload_data(), 0)
@@ -184,59 +183,134 @@ def demo2():
     E = np.linspace(-1.5, 1.5, n)
     T = np.linspace(-(1/3)*pi*n/2, (1/3)*pi*n/2, n)
     result = fouriertransform(T, data_to_use, E)
+    plotift(data_to_use, result)
     back_to_data = inversetransform(E, result, T)
     plotfouriertransform(data_to_use, back_to_data)
-#    assert np.all(abs(data_to_use - back_to_data) < 1e-12), "max err: %g"%max(abs(data_to_use - back_to_data))
+    assert np.all(abs(data_to_use - back_to_data) < 1e-12), "max err: %g"%max(abs(data_to_use - back_to_data))
     pylab.show()
     
+def show_testing(E, t, ynum, Y, yt):
+    if 1:
+        pylab.clf()
+        pylab.subplot(211)
+        pylab.plot(E,abs(ynum),'.',label='data')
+        pylab.plot(E,abs(yt),'.-',label='ift(ft(data))')
+        pylab.legend()
+        pylab.subplot(212)
+        pylab.plot(t, abs(Y),'.', label='ft(data)')
+        pylab.legend()
+        pylab.show()
 
-def test_inversion():
+def test_Gaussian():
     """
     Check the inverse transform of the transform of data matches data
     """
     #nE, nt, width = 81, 51, 5
-    nE, nt, width = 151, 151, 7
+    nE, nt, width = 2251, 2251, 7
     mu, sigma = 0, 6.7
     E = np.linspace(-width*sigma+mu, width*sigma+mu, nE)
-    t = np.linspace(-width/sigma, width/sigma, nt)
-    tau = 50
-    gamma = 1 / tau
-    y0 = (1/pi)*(gamma/2) / (t**2 + (gamma/2)**2)
+#    tGaus = np.linspace(-width/sigma, width/sigma, nt)
+    tLoren = np.linspace(-(pi * nt) / ((4*width*sigma+mu)), (pi * nt) / ((4*width*sigma+mu)), nt) 
     y1 = exp(-0.5*(E-mu)**2/sigma**2)/sqrt(2*pi*sigma**2)
-    y2 = np.convolve(y0, y1, 'same')
 
     #F(0) = \int f(x) e^{-i x 0} dx = \int f(x) e^0 dx = \int f(x)
-    ft = fouriertransform(E, y2, t)
-    ft_zero = ft[75] #Index must be the center of the matrix
-    y_area = np.trapz(x=E, y=y2)
+    ft = fouriertransform(E, y1, tLoren)
+    ft_zero = ft[(nt-1)/2] #Index must be the center of the matrix
+    y_area = np.trapz(x=E, y=y1)
     assert abs(y_area - ft_zero) <  1e-8, "ft(0): %g, Sy: %g"%(ft_zero, y_area)
     
     # Fourier transform should be invertible, in that the inverse transform
     # of the forward transform should match the original function.
-    Y = inversetransform(E, y2, t)
-    yt = fouriertransform(t, Y, E)
-#    if 0:
-#        pylab.subplot(211)
-#        pylab.plot(E,abs(y0),'.',label='data')
-#        pylab.plot(E,abs(yt),'.',label='ift(ft(data))')
-#        pylab.legend()
-#        pylab.subplot(212)
-#        pylab.plot(t, abs(Y),'.', label='ft(data)')
-#        pylab.legend()
-#        pylab.show()
-    assert np.all(abs(y2-yt) < 1e-12), "max err: %g"%max(abs(y2-yt))
+    Y = inversetransform(E, y1, tLoren)
+    yt = fouriertransform(tLoren, Y, E)
+    show_testing(E, tLoren, y1, Y, yt)
+    assert np.all(abs(y1-yt) < 1e-12), "max err: %g"%max(abs(y1-yt))
+
+
+    # Fourier transform of a Gaussian using unitary angular frequency
+    # is a Gaussian of 1/sigma, scaled so that the peak is 1.  Any shift
+    # in the center corresponds to a phase shift of e^{-i mu t} 
+    Y1theory = exp(-1j*mu*tLoren) * (1/(2*pi)) * exp(-(tLoren**2) * (sigma**2) / 2)
+    assert np.all(abs(Y-Y1theory) < 1e-12), "max err: %g"%max(abs(Y-Y1theory))
+    
+def test_Lorentzian():
+    nE, nt, width = 2251, 2251, 1.5
+    mu, sigma = 0, 1
+    E = np.linspace(-width*sigma+mu, width*sigma+mu, nE)
+    tLoren = np.linspace(-(pi * nt) / (2*(width*sigma+mu)), (pi * nt) / (2*(width*sigma+mu)), nt)
+    print tLoren
+    tau = 50
+    gamma = 1 / tau
+    y0 = (1/pi)*(gamma/2) / (E**2 + (gamma/2)**2)
+    print y0
+
+    #F(0) = \int f(x) e^{-i x 0} dx = \int f(x) e^0 dx = \int f(x)
+    ft = fouriertransform(E, y0, tLoren)
+    ft_zero = ft[(nt-1)/2] #Index must be the center of the matrix
+    y_area = np.trapz(x=E, y=y0)
+    assert abs(y_area - ft_zero) <  1e-8, "ft(0): %g, Sy: %g"%(ft_zero, y_area)
+    
+    # Fourier transform should be invertible, in that the inverse transform
+    # of the forward transform should match the original function.
+    Y = inversetransform(E, y0, tLoren)
+    yt = fouriertransform(tLoren, Y, E)
+    show_testing(E, tLoren, y0, Y, yt)
+#    assert np.all(abs(y0-yt) < 1e-12), "max err: %g"%max(abs(y0-yt))
 
 
     # Fourier transform of a Gaussian using unitary angular frequency
     # is a Gaussian of 1/sigma, scaled so that the peak is 1.  Any shift
     # in the center corresponds to a phase shift of e^{-i mu t}
-    Y0theory = (1/(2*pi))*exp(-(abs(t)) / (2*tau))    
-    Y1theory = exp(-1j*mu*t) * (1/(2*pi)) * exp(-(t**2) * (sigma**2) / 2)
+    Y0theory = (1/(2*pi))*exp(-(abs(tLoren)) / (2*tau))
+    assert np.all(abs(Y-Y0theory) < 1e-12), "max err: %g"%max(abs(Y-Y0theory))
+    
+def test_convolution():
+    nE, nt, width = 2251, 2251, 7
+    mu, sigma = 0, 6.7
+    E = np.linspace(-width*sigma+mu, width*sigma+mu, nE)
+    tGaus = np.linspace(-width/sigma, width/sigma, nt)
+    tLoren = np.linspace(-10*width/sigma, 10*width/sigma, nt)
+    tau = 50
+    gamma = 1 / tau
+    y0 = (1/pi)*(gamma/2) / (tLoren**2 + (gamma/2)**2)
+    y1 = exp(-0.5*(E-mu)**2/sigma**2)/sqrt(2*pi*sigma**2)
+    y2 = np.convolve(y0, y1, 'same')
+
+    #F(0) = \int f(x) e^{-i x 0} dx = \int f(x) e^0 dx = \int f(x)
+    ft = fouriertransform(E, y0, tLoren)
+    ft_zero = ft[(nt-1)/2] #Index must be the center of the matrix
+    y_area = np.trapz(x=E, y=y0)
+    assert abs(y_area - ft_zero) <  1e-8, "ft(0): %g, Sy: %g"%(ft_zero, y_area)
+    
+    # Fourier transform should be invertible, in that the inverse transform
+    # of the forward transform should match the original function.
+    Y = inversetransform(E, y0, tLoren)
+    yt = fouriertransform(tLoren, Y, E)
+    if 1:
+        pylab.clf()
+        pylab.subplot(211)
+        pylab.plot(E,abs(y0),'.',label='data')
+        pylab.plot(E,abs(yt),'.',label='ift(ft(data))')
+        pylab.legend()
+        pylab.subplot(212)
+        pylab.plot(tLoren, abs(Y),'.', label='ft(data)')
+        pylab.legend()
+        pylab.show()
+    assert np.all(abs(y0-yt) < 1e-12), "max err: %g"%max(abs(y0-yt))
+
+
+    # Fourier transform of a Gaussian using unitary angular frequency
+    # is a Gaussian of 1/sigma, scaled so that the peak is 1.  Any shift
+    # in the center corresponds to a phase shift of e^{-i mu t}
+    Y0theory = (1/(2*pi))*exp(-(abs(tLoren)) / (2*tau))    
+    Y1theory = exp(-1j*mu*tGaus) * (1/(2*pi)) * exp(-(tGaus**2) * (sigma**2) / 2)
     Y2theory = 2*pi*Y0theory*Y1theory
-    assert np.all(abs(Y-Y2theory) < 1e-12), "max err: %g"%max(abs(Y-Y2theory))
+    assert np.all(abs(Y-Y0theory) < 1e-12), "max err: %g"%max(abs(Y-Y0theory))
+    
 
 if __name__ == "__main__":
-    demo1()
+    #demo1()
     #demo2()
-    #test_inversion()
+    #test_Gaussian()
+    test_Lorentzian()
 
