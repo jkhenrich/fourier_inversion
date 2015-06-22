@@ -63,7 +63,7 @@ def fourier_transform_lorentzian(t):#Does not result in I(Q,t), results in (2*pi
     return lft
 
 
-def transform_convolution(t, sig): 
+def transform_convolution(t, sig):
     """
     tranform_convolution creates an array containing multiplication of the
     points of the fourier transformed gaussian distribution, and fourier
@@ -96,7 +96,7 @@ def inversetransform(e, data, t):
 
 
 def plotift(data, iftdata):
-    rowused = 0 #Make sure this matchs the integer in return extracteddata[0, :]
+    rowused = 2 #Make sure this matchs the integer in return extracteddata[0, :]
                 #from choose_data_from_file(data)
     n = len(data)
     E = np.linspace(-1.5, 1.5, n)
@@ -105,32 +105,38 @@ def plotift(data, iftdata):
     pylab.clf()
     pylab.plot(E, data, '-o', label='Original Data')
     if rowused == 0:
-        pylab.plot(t, fourier_transform_lorentzian(t), label='Lorentzian Transformed Exact')
-        pylab.plot(t, iftdata, '-o', label='Inverse Fourier Transform')
+        pylab.plot(t, fourier_transform_lorentzian(t),
+                   label='Lorentzian Transformed Exact')
+        pylab.plot(t, iftdata, '-o',
+                   label='Inverse Fourier Transform')
         pylab.xlabel('Time')
         pylab.ylabel('Intensity (counts/s)')
         pylab.title('Simulated intensity for a Lorentzian signal')
         pylab.legend()
     elif rowused == 1:
-        pylab.plot(t, fourier_transform_gaussian(t, sig), '-o', label='Gaussian Exact')
+        pylab.plot(t, fourier_transform_gaussian(t, sig), '-o',
+                   label='Gaussian Exact')
         pylab.plot(t, iftdata, '-o', label='Inverse Fourier Transform')
         pylab.xlabel('Time')
         pylab.ylabel('Intensity (counts/s)')
         pylab.title('Simulated intensity for a Gaussian signal')
         pylab.legend()
     elif rowused == 2:
-        pylab.plot(t, transform_convolution(t, sig), label='Convolution Transformed Exact')
+        pylab.plot(t, transform_convolution(t, sig),
+                   label='Convolution Transformed Exact')
         pylab.plot(t, iftdata, '-o', label='Inverse Fourier Transform')
         pylab.xlabel('Time')
         pylab.ylabel('Intensity (counts/s)')
-        pylab.title('Simulated intensity for a Gaussian signal')
+        pylab.title('Simulated intensity for a Convoluted signal')
         pylab.legend()
     elif rowused == 3:
-        pylab.plot(t, transform_convolution(t, sig), label='Convolution Transformed Exact')
-        pylab.plot(t, iftdata, '-o', label='Inverse Fourier Transform of Convoluted Data with Noise')
+        pylab.plot(t, transform_convolution(t, sig),
+                   label='Convolution Transformed Exact')
+        pylab.plot(t, iftdata, '-o',
+                   label='Inverse Fourier Transform of Convoluted Data with Noise')
         pylab.xlabel('Time')
         pylab.ylabel('Intensity (counts/s)')
-        pylab.title('Simulated intensity for a Gaussian signal')
+        pylab.title('Simulated intensity for a Convoluted signal with noise')
         pylab.legend()
     assert rowused < 4 and rowused >= 0
 
@@ -151,6 +157,7 @@ def fouriertransform(t, data, e):
 #    print ftdata
     return ftdata
 
+
 def plotfouriertransform(data, fouriertransform):
     n = len(data)
     E = np.linspace(-1.5, 1.5, n)
@@ -167,16 +174,11 @@ def demo1():
     E = np.linspace(-1.5, 1.5, n)
     T = np.linspace(-(1/3)*pi*n/2, (1/3)*pi*n/2, n)
     result = inversetransform(E, data_to_use, T)
-    #fouriertransform(inversetransform(data))
-    #print "norm",np.linalg.norm(data-result)
-    #fouriertransform(T, result, E)
-    ftreverse = fouriertransform(T,
-                                 result, E)
+    ftreverse = fouriertransform(T, result, E)
     plotfouriertransform(data_to_use, ftreverse)
     pylab.show()
-    Y0theory = (1/(2*pi))*exp(-(abs(T)) / (2*50))   
-    assert np.all(abs(result-Y0theory) < 1e-12), "max err: %g"%max(abs(result-Y0theory))
-    
+
+
 def demo2():
     data_to_use = choose_data_from_file(upload_data(), 0)
     n = len(data_to_use)
@@ -184,41 +186,58 @@ def demo2():
     T = np.linspace(-(1/3)*pi*n/2, (1/3)*pi*n/2, n)
     result = fouriertransform(T, data_to_use, E)
     plotift(data_to_use, result)
-    back_to_data = inversetransform(E, result, T)
-    plotfouriertransform(data_to_use, back_to_data)
-    assert np.all(abs(data_to_use - back_to_data) < 1e-12), "max err: %g"%max(abs(data_to_use - back_to_data))
     pylab.show()
-    
+
+
+def demo3():
+    data_to_use = choose_data_from_file(upload_data(), 2)
+    n = len(data_to_use)
+    E = np.linspace(-1.5, 1.5, n)
+    T = np.linspace(-(1/3)*pi*n/2, (1/3)*pi*n/2, n)
+    result = inversetransform(E, data_to_use, T)
+    print result
+    plotift(data_to_use, result)
+    pylab.show()
+
+
 def show_testing(E, t, ynum, Y, yt):
+    """
+    shows the graphs for test_Gaussian and test_Lorentzian
+    """
     if 1:
         pylab.clf()
         pylab.subplot(211)
-        pylab.plot(E,abs(ynum),'.',label='data')
-        pylab.plot(E,abs(yt),'.-',label='ift(ft(data))')
+        pylab.plot(E, abs(ynum), '.', label='data')
+        pylab.plot(E, abs(yt), '.-', label='ift(ft(data))')
         pylab.legend()
         pylab.subplot(212)
-        pylab.plot(t, abs(Y),'.', label='ft(data)')
+        pylab.plot(t, abs(Y), '.', label='ft(data)')
         pylab.legend()
         pylab.show()
 
+
 def test_Gaussian():
     """
-    Check the inverse transform of the transform of data matches data
+    Checks that the fourier transform's value at 0 matches the area under the
+    original curve, taking the fourier transform of the inverse transform
+    matches the original data, and the inverse transform of the data
+    corresponds to the therotical definition of its inverse transform for the
+    Gaussian distribution.
     """
     #nE, nt, width = 81, 51, 5
-    nE, nt, width = 2251, 2251, 7
-    mu, sigma = 0, 6.7
+    nE, nt, width = 2251, 2251, 150
+    mu, sigma = 0, 0.01
     E = np.linspace(-width*sigma+mu, width*sigma+mu, nE)
-#    tGaus = np.linspace(-width/sigma, width/sigma, nt)
-    tLoren = np.linspace(-(pi * nt) / ((4*width*sigma+mu)), (pi * nt) / ((4*width*sigma+mu)), nt) 
+    tLoren = np.linspace(-(pi * nt) / ((4*width*sigma+mu)), (pi * nt) / ((4*width*sigma+mu)), nt)
     y1 = exp(-0.5*(E-mu)**2/sigma**2)/sqrt(2*pi*sigma**2)
+#    print 'y1:', y1
 
-    #F(0) = \int f(x) e^{-i x 0} dx = \int f(x) e^0 dx = \int f(x)
+    # F(0) = \int f(x) e^{-i x 0} dx = \int f(x) e^0 dx = \int f(x)
     ft = fouriertransform(E, y1, tLoren)
     ft_zero = ft[(nt-1)/2] #Index must be the center of the matrix
     y_area = np.trapz(x=E, y=y1)
-    assert abs(y_area - ft_zero) <  1e-8, "ft(0): %g, Sy: %g"%(ft_zero, y_area)
-    
+    assert abs(y_area - ft_zero) < 1e-8, "ft(0): %g, Sy: %g"%(ft_zero, y_area)
+
     # Fourier transform should be invertible, in that the inverse transform
     # of the forward transform should match the original function.
     Y = inversetransform(E, y1, tLoren)
@@ -226,19 +245,26 @@ def test_Gaussian():
     show_testing(E, tLoren, y1, Y, yt)
     assert np.all(abs(y1-yt) < 1e-12), "max err: %g"%max(abs(y1-yt))
 
-
     # Fourier transform of a Gaussian using unitary angular frequency
     # is a Gaussian of 1/sigma, scaled so that the peak is 1.  Any shift
-    # in the center corresponds to a phase shift of e^{-i mu t} 
+    # in the center corresponds to a phase shift of e^{-i mu t}
     Y1theory = exp(-1j*mu*tLoren) * (1/(2*pi)) * exp(-(tLoren**2) * (sigma**2) / 2)
     assert np.all(abs(Y-Y1theory) < 1e-12), "max err: %g"%max(abs(Y-Y1theory))
-    
+
+
 def test_Lorentzian():
-    nE, nt, width = 2251, 2251, 1.5
-    mu, sigma = 0, 1
+    """
+    Checks that the fourier transform's value at 0 matches the area under the
+    original curve, taking the fourier transform of the inverse transform
+    matches the original data, and the inverse transform of the data
+    corresponds to the therotical definition of its inverse transform for the
+    Lorentzian distribution.
+    """
+    nE, nt, width = 2251, 2251, 150
+    mu, sigma = 0, 0.01
     E = np.linspace(-width*sigma+mu, width*sigma+mu, nE)
-    tLoren = np.linspace(-(pi * nt) / (2*(width*sigma+mu)), (pi * nt) / (2*(width*sigma+mu)), nt)
-    print tLoren
+    tLoren = np.linspace(-(pi * nt) / (4*(width*sigma+mu)), (pi * nt) / (4*(width*sigma+mu)), nt)
+#    print tLoren
     tau = 50
     gamma = 1 / tau
     y0 = (1/pi)*(gamma/2) / (E**2 + (gamma/2)**2)
@@ -248,69 +274,69 @@ def test_Lorentzian():
     ft = fouriertransform(E, y0, tLoren)
     ft_zero = ft[(nt-1)/2] #Index must be the center of the matrix
     y_area = np.trapz(x=E, y=y0)
-    assert abs(y_area - ft_zero) <  1e-8, "ft(0): %g, Sy: %g"%(ft_zero, y_area)
-    
+    assert abs(y_area - ft_zero) < 0.001, "ft(0): %g, Sy: %g"%(ft_zero, y_area)
+
     # Fourier transform should be invertible, in that the inverse transform
     # of the forward transform should match the original function.
     Y = inversetransform(E, y0, tLoren)
     yt = fouriertransform(tLoren, Y, E)
     show_testing(E, tLoren, y0, Y, yt)
-#    assert np.all(abs(y0-yt) < 1e-12), "max err: %g"%max(abs(y0-yt))
+    assert np.all(abs(y0-yt) < 0.001), "max err: %g"%max(abs(y0-yt))
 
 
-    # Fourier transform of a Gaussian using unitary angular frequency
-    # is a Gaussian of 1/sigma, scaled so that the peak is 1.  Any shift
-    # in the center corresponds to a phase shift of e^{-i mu t}
+    # Fourier transform of a Lorentzian is an expontential of the form
+    # (1/(2*pi)e^(t/(2*tau)).  Any shift in the center corresponds to a phase
+    # shift of e^{-i mu t}.
     Y0theory = (1/(2*pi))*exp(-(abs(tLoren)) / (2*tau))
-    assert np.all(abs(Y-Y0theory) < 1e-12), "max err: %g"%max(abs(Y-Y0theory))
-    
+    assert np.all(abs(Y-Y0theory) < 0.001), "max err: %g"%max(abs(Y-Y0theory))
+
+
 def test_convolution():
-    nE, nt, width = 2251, 2251, 7
-    mu, sigma = 0, 6.7
+    """
+    Checks that the fourier transform's value at 0 matches the area under the
+    original curve and the inverse transform of the data corresponds to the
+    therotical definition of its inverse transform for the
+    convoluted curve.
+    """
+    nE, nt, width = 2251, 2251, 150
+    mu, sigma = 0, 0.01
     E = np.linspace(-width*sigma+mu, width*sigma+mu, nE)
-    tGaus = np.linspace(-width/sigma, width/sigma, nt)
-    tLoren = np.linspace(-10*width/sigma, 10*width/sigma, nt)
+    tLoren = np.linspace(-(pi * nt) / (4*(width*sigma+mu)), (pi * nt) / (4*(width*sigma+mu)), nt)
     tau = 50
     gamma = 1 / tau
-    y0 = (1/pi)*(gamma/2) / (tLoren**2 + (gamma/2)**2)
+    y0 = (1/pi)*(gamma/2) / (E**2 + (gamma/2)**2)
     y1 = exp(-0.5*(E-mu)**2/sigma**2)/sqrt(2*pi*sigma**2)
-    y2 = np.convolve(y0, y1, 'same')
-
+    y2 = np.convolve(y0, y1, 'same')*(E[1]-E[0])
+#    print y0, y1, y2
     #F(0) = \int f(x) e^{-i x 0} dx = \int f(x) e^0 dx = \int f(x)
-    ft = fouriertransform(E, y0, tLoren)
+    ft = fouriertransform(E, y2, tLoren)
     ft_zero = ft[(nt-1)/2] #Index must be the center of the matrix
-    y_area = np.trapz(x=E, y=y0)
-    assert abs(y_area - ft_zero) <  1e-8, "ft(0): %g, Sy: %g"%(ft_zero, y_area)
-    
+    y_area = np.trapz(x=E, y=y2)
+    assert abs(y_area - ft_zero) < 1e-8, "ft(0): %g, Sy: %g"%(ft_zero, y_area)
+
     # Fourier transform should be invertible, in that the inverse transform
     # of the forward transform should match the original function.
-    Y = inversetransform(E, y0, tLoren)
-    yt = fouriertransform(tLoren, Y, E)
+    Y = inversetransform(E, y2, tLoren)
+    print 'Y: ', Y
+    ygaus = inversetransform(E, y1, tLoren)
+    yloren = inversetransform(E, y0, tLoren)
+    yconvot = ygaus * yloren *(2*pi)
     if 1:
         pylab.clf()
-        pylab.subplot(211)
-        pylab.plot(E,abs(y0),'.',label='data')
-        pylab.plot(E,abs(yt),'.',label='ift(ft(data))')
-        pylab.legend()
-        pylab.subplot(212)
-        pylab.plot(tLoren, abs(Y),'.', label='ft(data)')
+        pylab.plot(tLoren, abs(yconvot), '.', label='Convoluted divided by Gaussian')
+        pylab.plot(tLoren, abs(ygaus), '.', label='Guassian curve')
+        pylab.plot(tLoren, abs(yloren), '.', label='Fourier Transformed Laurentian')
+        pylab.plot(tLoren, abs(Y), '.', label='ft(data)')
         pylab.legend()
         pylab.show()
-    assert np.all(abs(y0-yt) < 1e-12), "max err: %g"%max(abs(y0-yt))
+    assert np.all(abs(Y - yconvot) < 0.001), "max err: %g"%max(abs(Y - yconvot))
 
-
-    # Fourier transform of a Gaussian using unitary angular frequency
-    # is a Gaussian of 1/sigma, scaled so that the peak is 1.  Any shift
-    # in the center corresponds to a phase shift of e^{-i mu t}
-    Y0theory = (1/(2*pi))*exp(-(abs(tLoren)) / (2*tau))    
-    Y1theory = exp(-1j*mu*tGaus) * (1/(2*pi)) * exp(-(tGaus**2) * (sigma**2) / 2)
-    Y2theory = 2*pi*Y0theory*Y1theory
-    assert np.all(abs(Y-Y0theory) < 1e-12), "max err: %g"%max(abs(Y-Y0theory))
-    
 
 if __name__ == "__main__":
-    #demo1()
+    demo1()
     #demo2()
+    #demo3()
     #test_Gaussian()
-    test_Lorentzian()
+    #test_Lorentzian()
+    #test_convolution()
 

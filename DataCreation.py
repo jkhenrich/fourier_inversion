@@ -154,7 +154,7 @@ def create_data_to_export(e, s, basename):
         print_values(e, lsig, gsig, convosig, rn_convosig)
         toexport = np.vstack((lsig, gsig, convosig, rn_convosig))
         toexport = toexport.transpose()
-        export_data_csv(toexport, basename+str(i)+'sigma-%g'%sig)
+        #export_data_csv(toexport, basename+str(i)+'sigma-%g'%sig)
 
 
 
@@ -177,7 +177,7 @@ def demo1():
                           raw_input("Choose a general filename: "))
 
 def demo2():
-    create_data_to_export(choose_data_from_file(upload_data(), 0), [0.2522],
+    create_data_to_export(np.linspace(-1.5, 1.5, 2251), [0.01],
                           raw_input("Choose a general filename: "))
 
 demo2()
