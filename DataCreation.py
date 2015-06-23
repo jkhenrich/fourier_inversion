@@ -180,6 +180,7 @@ def demo2():
     create_data_to_export(np.linspace(-1.5, 1.5, 2251), [0.01],
                           raw_input("Choose a general filename: "))
 
-demo2()
+if __name__ == "__main__":
+    demo2()
 
 

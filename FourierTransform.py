@@ -91,7 +91,7 @@ def inversetransform(e, data, t):
         transformedvalue = (1/(2*pi))*np.trapz(data* exp(1j*e*t[index]), x=e)
         #np.put(iftdata, index, transformedvalue)
         iftdata[index] = transformedvalue
-    print iftdata
+#    print iftdata
     return iftdata
 
 
