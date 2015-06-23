@@ -200,6 +200,16 @@ def demo3():
     pylab.show()
 
 
+def demo4():
+    data_to_use = choose_data_from_file(upload_data(), 3)
+    n = len(data_to_use)
+    E = np.linspace(-1.5, 1.5, n)
+    T = np.linspace(-(1/3)*pi*n/2, (1/3)*pi*n/2, n)
+    result = inversetransform(E, data_to_use, T)
+    plotift(data_to_use, result)
+    pylab.show()
+
+
 def show_testing(E, t, ynum, Y, yt):
     """
     shows the graphs for test_Gaussian and test_Lorentzian
@@ -333,9 +343,10 @@ def test_convolution():
 
 
 if __name__ == "__main__":
-    demo1()
+    #demo1()
     #demo2()
     #demo3()
+    demo4()
     #test_Gaussian()
     #test_Lorentzian()
     #test_convolution()
