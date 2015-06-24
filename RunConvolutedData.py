@@ -27,8 +27,8 @@ def run_the_transform (e_end, ne, sig):
         iftconvoi = abs(iftconvoi)
         point_means +=  iftconvoi 
         point_stds += iftconvoi**2
+    point_stds = (1 / (number_of_runs - 1))*(point_stds +(1/number_of_runs)*(point_means**2))
     point_means = (1 / number_of_runs)*point_means
-    point_stds = (1 / (number_of_runs - 1))*(point_stds +(number_of_runs)*(point_means**2))
     return t, point_means, point_stds
       
 def plot_transform_run(returnedvectors):
