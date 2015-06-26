@@ -80,7 +80,7 @@ def add_noise(orig):
     add_noise adds random noise into an array of data and requires an array of
     convoluted values as an input.
     """
-    levelofnoise = 0.3
+    levelofnoise = 0.03
     result = [xi+np.random.randn()*levelofnoise*xi for xi in orig]
         #At each index, a new value, consisiting of the original value plus
         #random noise, i.e. (the level of noise)*(a random number from
