@@ -20,9 +20,9 @@ def upload_data():
     upload_data takes data from previously exported csv file, and uploads it
     to be used in future code.
     """
-    newdata = np.loadtxt('DataFiles\Trial4.csv', dtype='float', delimiter=',')
-#    newdata = np.loadtxt(str(raw_input('Enter the name of data file to load:')),
-#                         dtype='float', delimiter=',')
+#    newdata = np.loadtxt('DataFiles\Trial4.csv', dtype='float', delimiter=',')
+    newdata = np.loadtxt(str(raw_input('Enter the name of data file to load:')),
+                         dtype='float', delimiter=',')
     print newdata.shape
     return newdata
 

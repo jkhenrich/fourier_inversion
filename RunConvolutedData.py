@@ -34,9 +34,11 @@ def run_the_transform (e_end, ne, sig):
         point_means +=  iftconvoi 
         point_stds += np.multiply(iftconvoi, iftconvoi)
     #point_stds = sqrt((1 / (number_of_runs))*(point_stds + (1/number_of_runs)*(point_means**2)))
-    point_stds = sqrt((1 / (number_of_runs - 1))*(point_stds +(1/number_of_runs)*(point_means**2)))
-    print point_stds
+    #point_stds = sqrt((1 / (number_of_runs - 1))*(point_stds +(1/number_of_runs)*(point_means**2)))
     point_means = (1 / number_of_runs)*point_means
+    point_stds = [find_stds(alliftvalues.transpose()[i]-point_means[i], number_of_runs) for i in np.arange(ne)]
+    point_stds = np.array(point_stds, dtype='complex')    
+    print len(point_stds)
     return number_of_runs, alliftvalues, point_means, t, point_stds#, allvalues
 
 def find_covariance(firstdesrowmmean, secdesrowmmean):
@@ -83,12 +85,20 @@ def demo_standard_deviations(number_of_runs, data, point_means):
     standarddeviations = [find_stds((data.transpose()[i] - point_means[i]), number_of_runs) for i in np.arange(len(point_means))]
     return np.array(standarddeviations)
 
-number_of_runs, data, point_means, t, point_stds = run_the_transform(1.5, 2251, 0.01)
-#demo_correlation_btw_neighbors(number_of_runs, data, point_means)
-stdscalc = demo_standard_deviations(number_of_runs, data, point_means)
-print stdscalc
-pylab.clf()
-plot_transform_run(number_of_runs, t, point_means, point_stds)
-pylab.show()
-dc.export_data_csv(data, 'originaldistvalues3')
-dc.export_data_csv(np.vstack([point_stds, stdscalc]), 'stdscalc2ways_data3')
+def demo_fakedata():
+    number_of_runs, data, point_means, t, point_stds = run_the_transform(1.5, 2251, 0.01)
+    #demo_correlation_btw_neighbors(number_of_runs, data, point_means)
+    stdscalc = demo_standard_deviations(number_of_runs, data, point_means)
+    print stdscalc
+    print len(stdscalc)
+    pylab.clf()
+    plot_transform_run(number_of_runs, t, point_means, point_stds)
+    pylab.show()
+    dc.export_data_csv(data, 'originaldistvalues3')
+    dc.export_data_csv(np.vstack([np.float_(point_stds), np.float_(stdscalc)]), 'stdscalc2ways_data3')
+    
+def demo_realdata():
+    importeddata = ft.upload_data()
+
+demo_fakedata()
+   
