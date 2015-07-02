@@ -9,6 +9,7 @@ from __future__ import division
 
 import pylab
 import numpy as np
+import os
 from numpy import exp, pi, sqrt
 import DataCreation as dc
 import FourierTransform as ft
@@ -41,7 +42,7 @@ def run_the_transform (e_end, ne, sig):
     print len(point_stds)
     return number_of_runs, alliftvalues, point_means, t, point_stds#, allvalues
 
-def find_covariance(firstdesrowmmean, secdesrowmmean):
+def find_covariance(firstdesrowmmean, secdesrowmmean, number_of_runs):
     tosum = firstdesrowmmean * secdesrowmmean
     covariance = np.sum(tosum) / (number_of_runs-1)
     return covariance
@@ -73,6 +74,12 @@ def plot_transform_run(number_of_runs, t, point_means, point_stds):
 #        pylab.plot(t, allvalues[i], '.')
     pylab.errorbar(t, point_means, yerr=point_stds)
     
+def findIQT(t, E, sampledataset, resolutionset):
+    Im = ft.inversetransform(E, sampledataset, t)
+    RQT = ft.inversetransform(E, resolutionset, t)
+    IQT = np.divide(Im, RQT)
+    return IQT
+        
     
 def demo_correlation_btw_neighbors(number_of_runs, data, point_means):
     correlations = np.empty_like(np.arange(len(point_means)-1))
@@ -98,7 +105,13 @@ def demo_fakedata():
     dc.export_data_csv(np.vstack([np.float_(point_stds), np.float_(stdscalc)]), 'stdscalc2ways_data3')
     
 def demo_realdata():
-    importeddata = ft.upload_data()
+    importedsampledata = np.loadtxt(str(raw_input('Enter the name of data file to load:')), dtype='float')
+    print importedsampledata
+#    importedresdata = np.loadtxt(str(raw_input('Enter the name of data file to load:')),
+#                                 dtype='float', delimiter=',')
+#    IQT = findIQT()
 
-demo_fakedata()
+#demo_fakedata()
+demo_realdata()
+
    
