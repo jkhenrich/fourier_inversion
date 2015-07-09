@@ -21,8 +21,8 @@ def upload_data():
     to be used in future code.
     """
 #    newdata = np.loadtxt('DataFiles\Trial4.csv', dtype='float', delimiter=',')
-    newdata = np.loadtxt(str(raw_input('Enter the name of data file to load:')),
-                         dtype='float', delimiter=',')
+    newdata = np.loadtxt(str(raw_input('Enter the name of data file to load: ')),
+                         dtype='float', skiprows=1)
     print newdata.shape
     return newdata
 
@@ -83,9 +83,9 @@ def inversetransform(e, data, t):
     transform over a given time interval. This is accomplished using the
     trapoziodal approximation of the integral.
     """
-    initialarraysize = data.size
+    initialarraysize = len(t)
     indices = np.arange(initialarraysize)
-    iftdata = np.empty_like(data, dtype='complex')
+    iftdata = np.empty_like(indices, dtype='complex')
 #    print iftdata.dtype
     for index in indices:
         transformedvalue = (1/(2*pi))*np.trapz(data* exp(1j*e*t[index]), x=e)
