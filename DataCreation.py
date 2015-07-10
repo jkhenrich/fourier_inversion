@@ -42,7 +42,7 @@ def create_lorentzian(e):
     with parameter gamma from points within the energy window requires an input
     e which is an symetric array of energy points.
     """
-    tau = 50
+    tau = 5
     gamma = 1/tau
     sqe = (1/pi)*(gamma/2) / (e**2 + (gamma/2)**2) #Standard equation of
                                                    #a Lorentzian function

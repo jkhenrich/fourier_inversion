@@ -123,31 +123,78 @@ def demo_stdtest():
     dc.export_data_csv(np.vstack([np.float_(point_stds), np.float_(stdscalc)]), 'stdscalc2ways_data3')
 
 def demo_createddata():
-    number_of_runs, data, point_means, t, point_stds = run_the_transform(1, 1501, 0.05)
+    number_of_runs, data, point_means, t, point_stds = run_the_transform(4.5, 6753, 0.01)
     print len(point_stds)
     assert np.all(abs(np.imag(data)) < 1e-12), 'Cant cast data to float, maxcomplex: %g'%max(abs(np.imag(data)))
     assert np.all(abs(np.imag(point_means)) < 1e-12), 'Cant cast means to float, maxcomplex: %g'%max(abs(np.imag(point_means)))
     assert np.all(abs(np.imag(point_stds)) < 1e-12), 'Cant cast stds to float, maxcomplex: %g'%max(abs(np.imag(point_stds)))
-    dc.export_data_csv(np.real(data).transpose(), 'origvalues201578_10')
-    dc.export_data_csv(np.vstack([t, np.real(point_means), np.real(point_stds)]).transpose(), 'meanstd201578_10')
+    dc.export_data_csv(np.real(data).transpose(), 'origvalues2015710_03')
+    dc.export_data_csv(np.vstack([t, np.real(point_means), np.real(point_stds)]).transpose(), 'meanstd2015710_03')
+
+def createresolutiondata(e, t, sig):
+    gaussian = dc.create_gaussian_norm(e, sig)
+    gaussianwnoise = dc.add_noise(gaussian)
+    ftgaussianwnoise = ft.inversetransform(e, gaussianwnoise, t)
+    return ftgaussianwnoise
     
-def graphingofoutput():
-    datafile1 = r'D:\Users\jkh\Documents\Python Scripts\fourier_inversion\DataFiles\Created data-differing energy and resolution runs\meanstd201578_06.csv'
-    data1st = np.loadtxt(datafile1, delimiter=',', skiprows = 2)
-    datafile2 = r'D:\Users\jkh\Documents\Python Scripts\fourier_inversion\DataFiles\Created data-differing energy and resolution runs\meanstd201578_08.csv'
-    datasecond = np.loadtxt(datafile2, delimiter=',', skiprows = 2)
+    
+def graphingofoutput():#Make sure to know the sigmas of the two data sets
+    datafile1 = r'D:\Users\jkh\Documents\Python Scripts\fourier_inversion\DataFiles\Created data-differing energy and resolution runs\meanstd2015710_01.csv'
+    data1st = np.loadtxt(datafile1, delimiter=',')
+    edata1 = np.linspace(-.5, .5, 751)
+    sigmadata1 =0.01
+    datafile2 = r'D:\Users\jkh\Documents\Python Scripts\fourier_inversion\DataFiles\Created data-differing energy and resolution runs\meanstd2015710_04.csv'
+    datasecond = np.loadtxt(datafile2, delimiter=',')
+    edata2 =np.linspace(-4.5, 4.5, 6753)
+    sigmadata2 = 0.01
     tdata1 = data1st[:, 0]
+    print len(tdata1)
     tdata2 = datasecond[:, 0]
+    print len(tdata2)
     meandata1 = data1st[:, 1]
     meandata2 = datasecond[:, 1]
     stdsdata1 = data1st[:, 2]
     stdsdata2 = datasecond[:, 2]
+    gauswbackground = 0
     pylab.clf()
-    pylab.plot(tdata1, meandata1, '-o', label='means of data1')
-    pylab.plot(tdata2, meandata2, '-o', label='means of data2')
-    pylab.xlabel('Time')
-    pylab.ylabel('Intensity (counts/s)')
-    pylab.legend()
+    if gauswbackground == 0:
+        pylab.subplot(2,1,1)
+        pylab.plot(tdata1, meandata1, '-o',
+                   label='Inverse Fourier Transform')
+        pylab.plot(tdata2, meandata2, '-o',
+                   label='Inverse Fourier Transform')             
+#        pylab.plot(tdata1, abs(dc.add_noise(ft.fourier_transform_gaussian(tdata1, sigmadata1))), '-o', label = 'Resolution1')
+#        pylab.plot(tdata1, abs(dc.add_noise(ft.fourier_transform_gaussian(tdata2, sigmadata2))), '-o', label = 'Resolution2')
+        pylab.xlabel('Time')
+        pylab.ylabel('Intensity (counts/s)')
+#        pylab.yscale('log')
+        pylab.legend()
+#        pylab.plot(tdata1, meandata1, '-o', label='means of data1')
+ #       pylab.plot(tdata2, meandata2, '-o', label='means of data2')
+        pylab.subplot(2, 1,2)
+        pylab.plot(tdata1, np.divide(abs(meandata1), abs(ft.fourier_transform_gaussian(tdata1, sigmadata1))), '-o', label='means of data1')
+        pylab.plot(tdata2, np.divide(abs(meandata2), abs(ft.fourier_transform_gaussian(tdata2, sigmadata2))), '-o', label='means of data2')
+#        pylab.plot(tdata1, abs(meandata1) / abs(ft.fourier_transform_gaussian(tdata1, sigmadata1)), '-o', label='means of data1')
+#        pylab.plot(tdata2, abs(meandata2) / abs(ft.fourier_transform_gaussian(tdata2, sigmadata2)), '-o', label='means of data2')    
+#        pylab.yscale('log')
+        pylab.ylim(0,5)    
+        pylab.xlabel('Time')
+        pylab.ylabel('Intensity (counts/s)')
+        pylab.legend()
+    if gauswbackground == 1:
+        pylab.subplot(2,1,1)
+        pylab.plot(tdata1, meandata1, '-o', label='means of data1')
+        pylab.plot(tdata2, meandata2, '-o', label='means of data2')
+        pylab.xlabel('Time')
+        pylab.ylabel('Intensity (counts/s)')
+        pylab.legend()
+        pylab.subplot(2, 1,2)
+        pylab.plot(tdata1, np.divide(abs(meandata1), createresolutiondata(edata1, tdata1, sigmadata1)), '-o', label='means of data1')
+        pylab.plot(tdata2, np.divide(abs(meandata2), createresolutiondata(edata2, tdata2, sigmadata2)), '-o', label='means of data2')
+        pylab.ylim(0,5)    
+        pylab.xlabel('Time')
+        pylab.ylabel('Intensity (counts/s)')
+        pylab.legend()
 
 def ft_calc_time(energy):
     """THIS METHOD INVERTS ENERGY <-> TIME FOR FFT
@@ -179,7 +226,7 @@ return,t"""
     nenergy = len(energy)
     de = energy[1]-energy[0]
     return (np.arange(-nenergy/2., nenergy/2.)+1./nenergy)/(nenergy*de)
-    _ = """
+    """
     n21 = nenergy/2 + 1
     t = np.arange(nenergy)
     #Insert negative frequencies in elements F(N/2 +1), ..., F(N-1):
