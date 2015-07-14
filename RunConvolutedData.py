@@ -12,10 +12,11 @@ import numpy as np
 from numpy import exp, pi, sqrt
 import DataCreation as dc
 import FourierTransform as ft
+import wsolve as ws
 
 
-def run_the_transform (e_end, ne, sig):
-    number_of_runs = 100
+def run_the_transform_artdata (e_end, ne, sig, number_of_runs):
+    number_of_runs = 10
     e = np.linspace(-e_end, e_end, ne)
     t  = np.linspace((-pi*ne)/(4*e_end), (pi*ne)/(4*e_end), ne)
     pretransformedvalues = np.ndarray(shape = (number_of_runs, ne), dtype=float)
@@ -24,9 +25,13 @@ def run_the_transform (e_end, ne, sig):
     point_stds = np.zeros_like(e, dtype = 'complex')
     for i in range(number_of_runs):
         convoi = dc.add_noise(dc.convolve(e,sig))
-        convoi = addlinearbackground(0.55, 0.05, convoi, e)
+#        convoi = addlinearbackground(0.55, 0.05, convoi, e)
         pretransformedvalues[i] = convoi
-        #pylab.plot(e, convoi, '.-')
+#        aproxx = np.append(e[:int(ne/3)], e[(2*int(ne/3)):])
+#        aproxy = np.append(convoi[:int(ne/3)], convoi[(2*int(ne/3)):])
+#        polymodel = ws.wpolyfit(aproxx, aproxy, degree=1)
+#        valuestofft = convoi - polymodel(e)
+#        iftconvoi = ft.inversetransform(e, valuestofft, t)
         iftconvoi = ft.inversetransform(e, convoi, t)
         iftconvoi = abs(iftconvoi)
         alliftvalues[i] = iftconvoi
@@ -40,6 +45,26 @@ def run_the_transform (e_end, ne, sig):
     point_stds = [find_stds(alliftvalues.transpose()[i]-point_means[i], number_of_runs) for i in np.arange(ne)]
     point_stds = np.array(point_stds, dtype='complex')
     return number_of_runs, alliftvalues, point_means, e, t, point_stds, pretransformedvalues#, allvalues
+    
+def run_the_transform_redata (e, t, pretranformedvalues, number_of_runs): #make sure pretranssformed values is in columns
+    alliftvalues = np.ndarray(shape = (number_of_runs, ne), dtype=complex)
+    point_means = np.zeros_like(e, dtype = 'complex')
+    point_stds = np.zeros_like(e, dtype = 'complex')
+    for i in range(number_of_runs):
+        pretransformedvalues[i] = convoi
+        aproxx = np.append(e[:int(ne/3)], e[(2*int(ne/3)):])
+        aproxy = np.append(convoi[:int(ne/3)], convoi[(2*int(ne/3)):])
+        polymodel = ws.wpolyfit(aproxx, aproxy, degree=1)
+        valuestofft = convoi - polymodel(e)
+        iftconvoi = ft.inversetransform(e, valuestofft, t)
+        iftconvoi = abs(iftconvoi)
+        alliftvalues[i] = iftconvoi
+        point_means +=  iftconvoi 
+        point_stds += np.multiply(iftconvoi, iftconvoi)
+    point_means = (1 / number_of_runs)*point_means
+    point_stds = [find_stds(alliftvalues.transpose()[i]-point_means[i], number_of_runs) for i in np.arange(ne)]
+    point_stds = np.array(point_stds, dtype='complex')
+    return alliftvalues, point_means, point_stds
 
 def find_covariance(firstdesrowmmean, secdesrowmmean, number_of_runs):
     tosum = firstdesrowmmean * secdesrowmmean
@@ -111,7 +136,7 @@ def demo_standard_deviations(number_of_runs, data, point_means):
     return np.array(standarddeviations)
 
 def demo_stdtest():
-    number_of_runs, data, point_means, e, t, point_stds, pretransformedvalues  = run_the_transform(1.5, 2251, 0.01)
+    number_of_runs, data, point_means, e, t, point_stds, pretransformedvalues  = run_the_transform_artdata(1.5, 2251, 0.01, 100)
     #demo_correlation_btw_neighbors(number_of_runs, data, point_means)
     stdscalc = demo_standard_deviations(number_of_runs, data, point_means)
     print 'pretransformedvalues'
@@ -127,17 +152,17 @@ def demo_stdtest():
     pylab.subplot(2,1,2)
     plot_transform_run(number_of_runs, t, point_means, point_stds)
     pylab.show()
-    dc.export_data_csv(data, 'originaldistvalues3')
-    dc.export_data_csv(np.vstack([np.float_(point_stds), np.float_(stdscalc)]), 'stdscalc2ways_data3')
+#    dc.export_data_csv(data, 'originaldistvalues3')
+#    dc.export_data_csv(np.vstack([np.float_(point_stds), np.float_(stdscalc)]), 'stdscalc2ways_data3')
 
 def demo_createddata():
-    number_of_runs, data, point_means, e, t, point_stds, pretransformedvalues = run_the_transform(1.5, 2251, 0.01)
+    number_of_runs, data, point_means, e, t, point_stds, pretransformedvalues = run_the_transform_artdata(1, 1501, 0.01, 100)
     print len(point_stds)
     assert np.all(abs(np.imag(data)) < 1e-12), 'Cant cast data to float, maxcomplex: %g'%max(abs(np.imag(data)))
     assert np.all(abs(np.imag(point_means)) < 1e-12), 'Cant cast means to float, maxcomplex: %g'%max(abs(np.imag(point_means)))
     assert np.all(abs(np.imag(point_stds)) < 1e-12), 'Cant cast stds to float, maxcomplex: %g'%max(abs(np.imag(point_stds)))
-    dc.export_data_csv(np.real(data).transpose(), 'origvalues2015713_01')
-    dc.export_data_csv(np.vstack([t, np.real(point_means), np.real(point_stds)]).transpose(), 'meanstd2015713_01')
+    dc.export_data_csv(np.real(data).transpose(), 'origvalues2015714_02')
+    dc.export_data_csv(np.vstack([t, np.real(point_means), np.real(point_stds)]).transpose(), 'meanstd2015714_02')
 
 def createresolutiondata(e, t, sig):
     gaussian = dc.create_gaussian_norm(e, sig)
@@ -152,9 +177,9 @@ def addlinearbackground(yintercept, slope, data, e): #make sure data us a 1d hor
     
     
 def graphingofoutput():#Make sure to know the sigmas of the two data sets
-    datafile1 = r'D:\Users\jkh\Documents\Python Scripts\fourier_inversion\DataFiles\Created data-differing energy and resolution runs\meanstd2015713_01.csv'
+    datafile1 = r'D:\Users\jkh\Documents\Python Scripts\fourier_inversion\DataFiles\Created data-differing energy and resolution runs\meanstd2015710_04.csv'
     data1st = np.loadtxt(datafile1, delimiter=',')
-    edata1 = np.linspace(-1.5, 1.5, 2251)
+    edata1 = np.linspace(-4.5, 4.5, 2251)
     sigmadata1 =0.01
     datafile2 = r'D:\Users\jkh\Documents\Python Scripts\fourier_inversion\DataFiles\Created data-differing energy and resolution runs\meanstd2015710_04.csv'
     datasecond = np.loadtxt(datafile2, delimiter=',')
@@ -168,7 +193,7 @@ def graphingofoutput():#Make sure to know the sigmas of the two data sets
     meandata2 = datasecond[:, 1]
     stdsdata1 = data1st[:, 2]
     stdsdata2 = datasecond[:, 2]
-    gauswbackground = 1
+    gauswbackground = 0
     pylab.clf()
     if gauswbackground == 0:
         pylab.subplot(2,1,1)
@@ -185,15 +210,16 @@ def graphingofoutput():#Make sure to know the sigmas of the two data sets
 #        pylab.plot(tdata1, meandata1, '-o', label='means of data1')
  #       pylab.plot(tdata2, meandata2, '-o', label='means of data2')
         pylab.subplot(2, 1,2)
-        pylab.plot(tdata1, np.divide(abs(meandata1), abs(ft.fourier_transform_gaussian(tdata1, sigmadata1))), '-o', label='means of data1')
+        pylab.ylim(0,5)
+        pylab.plot(tdata1, np.divide(abs(meandata1), abs(ft.fourier_transform_gaussian(tdata1, sigmadata1*2))), '-o', label='means of data1')
         pylab.plot(tdata2, np.divide(abs(meandata2), abs(ft.fourier_transform_gaussian(tdata2, sigmadata2))), '-o', label='means of data2')
 #        pylab.plot(tdata1, abs(meandata1) / abs(ft.fourier_transform_gaussian(tdata1, sigmadata1)), '-o', label='means of data1')
 #        pylab.plot(tdata2, abs(meandata2) / abs(ft.fourier_transform_gaussian(tdata2, sigmadata2)), '-o', label='means of data2')    
 #        pylab.yscale('log')
-        pylab.ylim(0,5)    
         pylab.xlabel('Time')
         pylab.ylabel('Intensity (counts/s)')
         pylab.legend()
+        
     if gauswbackground == 1:
         pylab.subplot(2,1,1)
         pylab.plot(tdata1, meandata1, '-o', label='means of data1')
