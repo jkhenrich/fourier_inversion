@@ -46,12 +46,19 @@ def run_the_transform_artdata (e_end, ne, sig, number_of_runs):
     point_stds = np.array(point_stds, dtype='complex')
     return number_of_runs, alliftvalues, point_means, e, t, point_stds, pretransformedvalues#, allvalues
     
-def run_the_transform_redata (e, t, pretranformedvalues, number_of_runs): #make sure pretranssformed values is in columns
-    alliftvalues = np.ndarray(shape = (number_of_runs, ne), dtype=complex)
-    point_means = np.zeros_like(e, dtype = 'complex')
-    point_stds = np.zeros_like(e, dtype = 'complex')
-    for i in range(number_of_runs):
-        pretransformedvalues[i] = convoi
+def run_the_transform_redata (e, t, pretransformedvalues, pretransformedres, number_of_runs): #make sure pretranssformed values is in columns
+    pretransformedvalues = pretransformedvalues.transpose()
+    print type(pretransformedvalues)
+    ne = len(e)
+    columnindices = np.arange(number_of_runs)
+    indicesfordata = np.where(columnindices %2 == 1)[0]    
+    alliftvalues = np.ndarray(shape = (len(indicesfordata), ne), dtype=complex)
+    allresvalues = np.empty_like(alliftvalues)
+    backgroundfunct = np.empty_like(alliftvalues)
+    print pretransformedvalues[0]
+    for i, xi in enumerate(indicesfordata):
+        convoi = pretransformedvalues[xi]
+        convoires = pretransformedres[xi]
         aproxx = np.append(e[:int(ne/3)], e[(2*int(ne/3)):])
         aproxy = np.append(convoi[:int(ne/3)], convoi[(2*int(ne/3)):])
         polymodel = ws.wpolyfit(aproxx, aproxy, degree=1)
@@ -59,12 +66,14 @@ def run_the_transform_redata (e, t, pretranformedvalues, number_of_runs): #make 
         iftconvoi = ft.inversetransform(e, valuestofft, t)
         iftconvoi = abs(iftconvoi)
         alliftvalues[i] = iftconvoi
-        point_means +=  iftconvoi 
-        point_stds += np.multiply(iftconvoi, iftconvoi)
-    point_means = (1 / number_of_runs)*point_means
-    point_stds = [find_stds(alliftvalues.transpose()[i]-point_means[i], number_of_runs) for i in np.arange(ne)]
-    point_stds = np.array(point_stds, dtype='complex')
-    return alliftvalues, point_means, point_stds
+        aproxyres = np.append(convoires[:int(ne/3)], convoires[(2*int(ne/3)):])
+        polymodelres = ws.wpolyfit(aproxx, aproxyres, degree=1)
+        restofft = convoires - polymodelres(e)
+        iftconvoires = ft.inversetransform(e, restofft, t)
+        iftconvoires = abs(iftconvoires)
+        allresvalues[i] = iftconvoires
+        backgroundfunct[i] = [polymodel, polymodelres]
+    return indicesfordata, alliftvalues, allresvalues, backgroundfunct
 
 def find_covariance(firstdesrowmmean, secdesrowmmean, number_of_runs):
     tosum = firstdesrowmmean * secdesrowmmean
@@ -106,7 +115,6 @@ def findIQT(t, E, sampledataset, resolutionset):
     return IQT
 
 def plotiftrealdata(e, data, resolution, transformeddata, resolutiont, IQT, t, nt):
-    pylab.clf()
     pylab.subplot(1,3,1)
     pylab.plot(e, data, '-o', label='Original Data')
     pylab.plot(e, resolution, '-o', label='Original Resolution')
@@ -119,7 +127,8 @@ def plotiftrealdata(e, data, resolution, transformeddata, resolutiont, IQT, t, n
     pylab.ylabel('Intensity (counts/s)')
     pylab.legend()
     pylab.subplot(1,3,3)
-    pylab.plot(t, IQT/IQT[len(t)//2], '-o', label = 'IQT')
+    pylab.plot(t, IQT, '-o', label = 'IQT')
+#    pylab.plot(t, IQT/IQT[len(t)//2], '-o', label = 'IQT')
     pylab.legend()
 
         
@@ -278,38 +287,96 @@ return,t"""
     return t
     """
 
-def demo_realdata():
-#    datafile = str(raw_input('Enter the name of data file to load:'))
-    datafile = r'D:\Users\jkh\Documents\HFBS Data\Reduced Data\20150628_04_pc220Kdyn.txt'
-#    resfile = str(raw_input('Enter the name of data file to load:'))
-    resfile = r'D:\Users\jkh\Documents\HFBS Data\Reduced Data\20150629_01_pc10Kdyn.txt'
-    importedsampledata = np.loadtxt(datafile, dtype='float')
-    e = (ft.choose_data_from_file(importedsampledata, 0)) / (10**3)
-    I1 = ft.choose_data_from_file(importedsampledata, 5)
-    nt = len(e)
-    t = np.linspace(-2*(pi * nt) / ((4*abs(e[0]))), 2*(pi * nt) / ((4*abs(e[0]))), nt)
-    I1transformed = ft.inversetransform(e, I1, t)
-    resolution = ft.choose_data_from_file(np.loadtxt(resfile, dtype='float'), 5)
-    restransformed = ft.inversetransform(e, resolution, t)
-    IQT1 = findIQT(t, e, I1, resolution)
-    t = ft_calc_time(e)
-    print t.shape, IQT1.shape
-    print t
-    plotiftrealdata(e, I1, resolution, I1transformed, restransformed, IQT1, t, nt)
+def demo_realdata_nocorr4background():
+#    datafile1 = str(raw_input('Enter the name of data file to load:'))
+    datafile1 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l6_T240K.txt'
+#    datafile2 = str(raw_input('Enter the name of data file to load:'))
+    datafile2 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l9_T240K.txt'
+#    resfile1 = str(raw_input('Enter the name of data file to load:'))
+    resfile1 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l6_T10K.txt'
+#    resfile2 = str(raw_input('Enter the name of data file to load:'))
+    resfile2 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l9_T10K.txt'
+    importedsampledata1 = np.loadtxt(datafile1, dtype='float')
+    e1 = (ft.choose_data_from_file(importedsampledata1, 0)) / (10**3)
+    I1 = ft.choose_data_from_file(importedsampledata1, 5)
+    nt1 = len(e1)
+    t1 = np.linspace(-2*(pi * nt1) / ((4*abs(e1[0]))), 2*(pi * nt1) / ((4*abs(e1[0]))), nt1)
+    print len(t1)
+    I1transformed = ft.inversetransform(e1, I1, t1)
+    resolution1 = ft.choose_data_from_file(np.loadtxt(resfile1, dtype='float'), 5)
+    restransformed = ft.inversetransform(e1, resolution1, t1)
+    print len(restransformed)
+    IQT1 = findIQT(t1, e1, I1, resolution1)
+    t1 = ft_calc_time(e1)
+    importedsampledata2 = np.loadtxt(datafile2, dtype='float')
+    e2 = (ft.choose_data_from_file(importedsampledata2, 0)) / (10**3)
+    print len(e2)
+    I2 = ft.choose_data_from_file(importedsampledata2, 5)
+    nt2 = len(e2)
+    t2 = np.linspace(-2*(pi * nt2) / ((4*abs(e2[0]))), 2*(pi * nt2) / ((4*abs(e2[0]))), nt2)
+    I2transformed = ft.inversetransform(e2, I2, t2)
+    resolution2 = ft.choose_data_from_file(np.loadtxt(resfile2, dtype='float'), 5)
+    print len(resolution2)
+    restransformed2 = ft.inversetransform(e2, resolution2, t2)
+    IQT2 = findIQT(t2, e2, I2, resolution2)
+    t2 = ft_calc_time(e2)
+    print t1.shape, IQT1.shape
+    print t1
+    pylab.clf()
+    plotiftrealdata(e1, I1, resolution1, I1transformed, restransformed, IQT1, t1, nt1)
+    plotiftrealdata(e2, I2, resolution2, I2transformed, restransformed2, IQT2, t2, nt2)
     print I1
 #    print I1transformed
 #    print restransformed
     print IQT1
-    print e.size
+    print e1.size
     print I1.size
 #    importedresdata = np.loadtxt(str(raw_input('Enter the name of data file to load:')),
 #                                 dtype='float', delimiter=',')
 #    IQT = findIQT()
 
+def demo_realdata_corr4background():
+#    datafile1 = str(raw_input('Enter the name of data file to load:'))
+    datafile1 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l6_T240K.txt'
+#    datafile2 = str(raw_input('Enter the name of data file to load:'))
+    datafile2 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l9_T240K.txt'
+#    resfile1 = str(raw_input('Enter the name of data file to load:'))
+    resfile1 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l6_T10K.txt'
+#    resfile2 = str(raw_input('Enter the name of data file to load:'))
+    resfile2 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l9_T10K.txt'
+    importedsampledata1 = np.loadtxt(datafile1, dtype='float')
+    e1 = (ft.choose_data_from_file(importedsampledata1, 0)) / (10**3)
+    nt1 = len(e1)
+    t1 = np.linspace(-2*(pi * nt1) / ((4*abs(e1[0]))), 2*(pi * nt1) / ((4*abs(e1[0]))), nt1)
+    resolution1 = np.loadtxt(resfile1, dtype='float')
+    print type(importedsampledata1)    
+    indicesfordata, alliftvalues, allresvalues, backgroundfunct = run_the_transform_redata (e1, t1, importedsampledata1, resolution1, nt1)
+    allIQT = [findIQT(t1, e1, alliftvalues[i], allresvalues[i]) for i,xi in enumerate(indicesfordata)]
+    print allIQT
+    '''
+    #t1 = ft_calc_time(e1)
+    importedsampledata2 = np.loadtxt(datafile2, dtype='float')
+    e2 = (ft.choose_data_from_file(importedsampledata2, 0)) / (10**3)
+    print len(e2)
+    I2 = ft.choose_data_from_file(importedsampledata2, 5)
+    nt2 = len(e2)
+    t2 = np.linspace(-2*(pi * nt2) / ((4*abs(e2[0]))), 2*(pi * nt2) / ((4*abs(e2[0]))), nt2)
+    I2transformed = ft.inversetransform(e2, I2, t2)
+    resolution2 = ft.choose_data_from_file(np.loadtxt(resfile2, dtype='float'), 5)
+    print len(resolution2)
+    restransformed2 = ft.inversetransform(e2, resolution2, t2)
+    IQT2 = findIQT(t2, e2, I2, resolution2)
+#    t2 = ft_calc_time(e2)
+    pylab.clf()
+    plotiftrealdata(e1, I1, resolution1, I1transformed, restransformed, IQT1, t1, nt1)
+    plotiftrealdata(e2, I2, resolution2, I2transformed, restransformed2, IQT2, t2, nt2)
+    '''
+
+
 #demo_createddata()
-#demo_realdata()
+demo_realdata_corr4background()
 #demo_stdtest()
 #testofoutput()
 #dc.export_data_csv(np.vstack([np.linspace((-pi*751)/(4*.5), (pi*751)/(4*.5), 751), np.linspace((-pi*1501)/(4*1), (pi*1501)/(4*1),1501), np.linspace((-pi*2251)/(4*1.5), (pi*2251)/(4*1.5), 2251), np.linspace((-pi*5253)/(4*3.5), (pi*5253)/(4*3.5), 5253)]).transpose(), 't201579_01')
-graphingofoutput()
+#graphingofoutput()
 print 'orig'
