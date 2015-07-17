@@ -48,32 +48,37 @@ def run_the_transform_artdata (e_end, ne, sig, number_of_runs):
     
 def run_the_transform_redata (e, t, pretransformedvalues, pretransformedres, number_of_runs): #make sure pretranssformed values is in columns
     pretransformedvalues = pretransformedvalues.transpose()
+    pretransformedres = pretransformedres.transpose()
     print type(pretransformedvalues)
     ne = len(e)
     columnindices = np.arange(number_of_runs)
     indicesfordata = np.where(columnindices %2 == 1)[0]    
     alliftvalues = np.ndarray(shape = (len(indicesfordata), ne), dtype=complex)
     allresvalues = np.empty_like(alliftvalues)
-    backgroundfunct = np.empty_like(alliftvalues)
+    wobackgroundvalues = np.empty_like(alliftvalues)
+    backgroundfunct = []
     print pretransformedvalues[0]
+    portion = 0.1
     for i, xi in enumerate(indicesfordata):
         convoi = pretransformedvalues[xi]
         convoires = pretransformedres[xi]
-        aproxx = np.append(e[:int(ne/3)], e[(2*int(ne/3)):])
-        aproxy = np.append(convoi[:int(ne/3)], convoi[(2*int(ne/3)):])
+        aproxx = np.append(e[:int(ne*portion)], e[-int(ne*portion):])
+        aproxy = np.append(convoi[:int(ne*portion)], convoi[-int(ne*portion):])
         polymodel = ws.wpolyfit(aproxx, aproxy, degree=1)
-        valuestofft = convoi - polymodel(e)
+#        valuestofft = convoi - polymodel(e)
+        valuestofft = convoi
+        wobackgroundvalues[i] = valuestofft
         iftconvoi = ft.inversetransform(e, valuestofft, t)
         iftconvoi = abs(iftconvoi)
         alliftvalues[i] = iftconvoi
-        aproxyres = np.append(convoires[:int(ne/3)], convoires[(2*int(ne/3)):])
+        aproxyres = np.append(convoires[:int(ne*portion)], convoires[-int(ne*portion):])
         polymodelres = ws.wpolyfit(aproxx, aproxyres, degree=1)
         restofft = convoires - polymodelres(e)
         iftconvoires = ft.inversetransform(e, restofft, t)
         iftconvoires = abs(iftconvoires)
         allresvalues[i] = iftconvoires
-        backgroundfunct[i] = [polymodel, polymodelres]
-    return indicesfordata, alliftvalues, allresvalues, backgroundfunct
+        backgroundfunct.append([polymodel, polymodelres])
+    return indicesfordata, alliftvalues, allresvalues, backgroundfunct, wobackgroundvalues
 
 def find_covariance(firstdesrowmmean, secdesrowmmean, number_of_runs):
     tosum = firstdesrowmmean * secdesrowmmean
@@ -114,10 +119,32 @@ def findIQT(t, E, sampledataset, resolutionset):
 #    IQT = np.divide(np.real(Im), np.real(RQT)) #To Do: Make sure real is supposed to be in here 
     return IQT
 
+#ORIGINAL Function
 def plotiftrealdata(e, data, resolution, transformeddata, resolutiont, IQT, t, nt):
     pylab.subplot(1,3,1)
     pylab.plot(e, data, '-o', label='Original Data')
     pylab.plot(e, resolution, '-o', label='Original Resolution')
+    pylab.legend()
+    pylab.subplot(1,3,2)
+    pylab.plot(t, abs(transformeddata), '-o',
+                   label='Inverse Fourier Transform')
+    pylab.plot(t, abs(resolutiont), '-o', label = 'Resolution')
+    pylab.xlabel('Time')
+    pylab.ylabel('Intensity (counts/s)')
+    pylab.legend()
+    pylab.subplot(1,3,3)
+    pylab.plot(t, IQT, '-o', label = 'IQT')
+#    pylab.plot(t, IQT/IQT[len(t)//2], '-o', label = 'IQT')
+    pylab.legend()
+
+    
+def NOTplotiftrealdata(e, data, resolution, transformeddata, resolutiont, wobackground, IQT, t, nt):
+    e = abs(e)
+    pylab.subplot(1,3,1)
+    pylab.plot(e, data, '-o', label='Original Data')
+    pylab.plot(e, resolution, '-o', label='Original Resolution')
+    print len(e), len(wobackground)
+    pylab.plot(e, wobackground, '-o', label = 'wobackground')
     pylab.legend()
     pylab.subplot(1,3,2)
     pylab.plot(t, abs(transformeddata), '-o',
@@ -349,28 +376,20 @@ def demo_realdata_corr4background():
     nt1 = len(e1)
     t1 = np.linspace(-2*(pi * nt1) / ((4*abs(e1[0]))), 2*(pi * nt1) / ((4*abs(e1[0]))), nt1)
     resolution1 = np.loadtxt(resfile1, dtype='float')
-    print type(importedsampledata1)    
-    indicesfordata, alliftvalues, allresvalues, backgroundfunct = run_the_transform_redata (e1, t1, importedsampledata1, resolution1, nt1)
+    indicesfordata, alliftvalues, allresvalues, backgroundfunct, wobackground = run_the_transform_redata (e1, t1, importedsampledata1, resolution1, len(importedsampledata1[0]))
     allIQT = [findIQT(t1, e1, alliftvalues[i], allresvalues[i]) for i,xi in enumerate(indicesfordata)]
-    print allIQT
-    '''
     #t1 = ft_calc_time(e1)
     importedsampledata2 = np.loadtxt(datafile2, dtype='float')
     e2 = (ft.choose_data_from_file(importedsampledata2, 0)) / (10**3)
-    print len(e2)
-    I2 = ft.choose_data_from_file(importedsampledata2, 5)
     nt2 = len(e2)
     t2 = np.linspace(-2*(pi * nt2) / ((4*abs(e2[0]))), 2*(pi * nt2) / ((4*abs(e2[0]))), nt2)
-    I2transformed = ft.inversetransform(e2, I2, t2)
-    resolution2 = ft.choose_data_from_file(np.loadtxt(resfile2, dtype='float'), 5)
-    print len(resolution2)
-    restransformed2 = ft.inversetransform(e2, resolution2, t2)
-    IQT2 = findIQT(t2, e2, I2, resolution2)
+    resolution2 = np.loadtxt(resfile2, dtype='float')
+    indicesfordata2, alliftvalues2, allresvalues2, backgroundfunct2, wobackground2 = run_the_transform_redata (e2, t2, importedsampledata2, resolution2, len(importedsampledata2[0]))
 #    t2 = ft_calc_time(e2)
+    print e1, importedsampledata1.transpose()[1], resolution1.transpose()[1], alliftvalues[0], allresvalues[0], findIQT(t1, e1, alliftvalues[0], allresvalues[0]), t1, nt1
     pylab.clf()
-    plotiftrealdata(e1, I1, resolution1, I1transformed, restransformed, IQT1, t1, nt1)
-    plotiftrealdata(e2, I2, resolution2, I2transformed, restransformed2, IQT2, t2, nt2)
-    '''
+    NOTplotiftrealdata(e1, importedsampledata1.transpose()[5], resolution1.transpose()[5], alliftvalues[2], allresvalues[2], wobackground[2], findIQT(t1, e1, abs(alliftvalues[2]), abs(allresvalues[2])), t1, nt1)
+    NOTplotiftrealdata(e2, importedsampledata2.transpose()[5], resolution2.transpose()[5], alliftvalues2[2], allresvalues2[2], wobackground2[2], findIQT(t2, e2, abs(alliftvalues2[2]), abs(allresvalues2[2])), t2, nt2)
 
 
 #demo_createddata()
