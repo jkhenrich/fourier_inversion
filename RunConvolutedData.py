@@ -15,7 +15,34 @@ import FourierTransform as ft
 import wsolve as ws
 
 
+def addlinearbackground(yintercept, slope, data, e): 
+    """
+    addlinearbackground takes, a y-intercept, a slope, energy range, and data corresponding to that 
+    
+    !Note: Make sure data is a 1d horizontal array
+    """
+    datawbackground = data + (slope*e + yintercept)
+    return datawbackground
+    
+
 def run_the_transform_artdata (e_end, ne, sig, number_of_runs):
+    """
+    run_the_transform_artdata first takes an energy range and turns it into a 
+    time domain. It then uses a Monte Carlo method to generate the mean and 
+    standard deviations of each value when noise is added to a convolution of 
+    the Laurenztian and the Gaussian with given sigma. The function returns 
+    seven variables:
+    number_of_runs : the number of times that the Monte Carlo process runs
+    e : the energy vector created in this function
+    t : the time vector which corresponds to the energy vector
+    pretransformedvalues : the values with noise before the inverse fourier transform
+    alliftvalues : the values with noise after the inverse fourier transform
+    point_means : the mean of all values at that t value
+    point_stds : the standard deviation for each point
+    
+    !Note: This function has the ability to add a linear background and then 
+    estimate and subsequently subtract that background.
+    """
     number_of_runs = 10
     e = np.linspace(-e_end, e_end, ne)
     t  = np.linspace((-pi*ne)/(4*e_end), (pi*ne)/(4*e_end), ne)
@@ -25,14 +52,19 @@ def run_the_transform_artdata (e_end, ne, sig, number_of_runs):
     point_stds = np.zeros_like(e, dtype = 'complex')
     for i in range(number_of_runs):
         convoi = dc.add_noise(dc.convolve(e,sig))
-#        convoi = addlinearbackground(0.55, 0.05, convoi, e)
+        """
+        #Uncomment this and the subsequent section of code to add and then estimate/subtract the background
+        convoi = addlinearbackground(0.55, 0.05, convoi, e)
+        """
         pretransformedvalues[i] = convoi
-#        aproxx = np.append(e[:int(ne/3)], e[(2*int(ne/3)):])
-#        aproxy = np.append(convoi[:int(ne/3)], convoi[(2*int(ne/3)):])
-#        polymodel = ws.wpolyfit(aproxx, aproxy, degree=1)
-#        valuestofft = convoi - polymodel(e)
-#        iftconvoi = ft.inversetransform(e, valuestofft, t)
-        iftconvoi = ft.inversetransform(e, convoi, t)
+        """
+        aproxx = np.append(e[:int(ne/3)], e[(2*int(ne/3)):])
+        aproxy = np.append(convoi[:int(ne/3)], convoi[(2*int(ne/3)):])
+        polymodel = ws.wpolyfit(aproxx, aproxy, degree=1)
+        valuestofft = convoi - polymodel(e)
+        iftconvoi = ft.inversetransform(e, valuestofft, t)
+        """
+        iftconvoi = ft.inversetransform(e, convoi, t) #To add background, comment out this line of code
         iftconvoi = abs(iftconvoi)
         alliftvalues[i] = iftconvoi
         pylab.plot(t, iftconvoi, '.')
@@ -50,9 +82,9 @@ def run_the_transform_redata (e, t, pretransformedvalues, pretransformedres, num
     ne = len(e)
     columnindices = np.arange(number_of_runs)
     indicesfordata = np.where(columnindices %2 == 1)[0]    
-    alliftvalues = np.ndarray(shape = (len(indicesfordata), ne), dtype=complex)
+    alliftvalues = np.ndarray(shape = (len(indicesfordata), len(t)), dtype=complex)
     allresvalues = np.empty_like(alliftvalues)
-    wobackgroundvalues = np.empty_like(alliftvalues)
+    wobackgroundvalues = np.empty((len(indicesfordata), ne))
     backgroundfunct = []
     portion = 0.1
     for i, xi in enumerate(indicesfordata):
@@ -80,6 +112,31 @@ def run_the_transform_redata (e, t, pretransformedvalues, pretransformedres, num
         allresvalues[i] = iftconvoires
 #        backgroundfunct.append([polymodel, polymodelres])
     return indicesfordata, alliftvalues, allresvalues, backgroundfunct, wobackgroundvalues
+
+    
+def run_the_transform (isredata, correctforbackground, runnumber = [0], e, t, sig = 0, portion = 0.1, data = 0, ddata = 0, wobackgroundvalues, alliftvalues, allresvalues):
+    #runnumber should start at 0
+    point_means = np.zeros_like(t, dtype = 'complex')
+    point_stds = np.zeros_like(t, dtype = 'complex')
+    for i in runnumber:
+        if isredata == 0:
+            data = dc.add_noise(dc.convolve(e,sig))
+            if correctforbackground == 1:
+                data = addlinearbackground(0.55, 0.05, convoi, e)
+        valuestofft = data
+        if correctforbackground == 1:
+            aproxx = np.append(e[:int(ne*portion)], e[-int(ne*portion):])
+            aproxy = np.append(data[:int(ne*portion)], data[-int(ne*portion):])
+            polymodel = ws.wpolyfit(aproxx, aproxy, degree=1)
+            valuestofft = abs(data - polymodel(e))
+        if isredata == 1:
+            valuestofft = valuestofft + np.random.normal(size = ddata.shape)*ddata
+        iftconvoi = ft.inversetransform(e, valuestofft, t)
+        alliftvalues[runnumber] = iftconvoi
+        
+    
+        
+        
 
 def find_covariance(firstdesrowmmean, secdesrowmmean, number_of_runs):
     tosum = firstdesrowmmean * secdesrowmmean
@@ -115,18 +172,18 @@ def plot_transform_run(number_of_runs, t, point_means, point_stds):
     
 def importrealdataerrors(allrows, rows, datafile):    
     if allrows == 0:
-        x = len(rows)
-        y = len(datafile[0,:])
+        print np.arange(len(rows))
         errors = [datafile[xi + 1] for i, xi in enumerate(rows)]
         print errors
         errors = np.array(errors)
     if allrows == 1:
-        columnindices = np.arange(len(datafile[0,:]))
-        rows = np.where(columnindices %2 == 0)[0]
-        x = len(rows)
-        y = len(datafile[0, :])
+        columnindices = np.arange(len(datafile[:,0]))
+        print columnindices
+        rows = np.where(columnindices %2 == 1)[0]
         errors = [datafile[xi + 1] for i, xi in enumerate(rows)]
         errors = np.array(errors)
+        print errors
+    return errors
     
 def findIQT(t, E, sampledataset, resolutionset):
     Im = ft.inversetransform(E, sampledataset, t)
@@ -223,9 +280,7 @@ def createresolutiondata(e, t, sig):
     ftgaussianwnoise = ft.inversetransform(e, gaussianwnoise, t)
     return ftgaussianwnoise
     
-def addlinearbackground(yintercept, slope, data, e): #make sure data us a 1d horizontal array
-    datawbackground = data + (slope*e + yintercept)
-    return datawbackground
+
     
     
 def graphingofoutput():#Make sure to know the sigmas of the two data sets
@@ -381,39 +436,41 @@ def demo_realdata_nocorr4background():
 
 def demo_realdata_corr4background():
 #    datafile1 = str(raw_input('Enter the name of data file to load:'))
-    datafile1 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l6_T240K.txt'
+    datafile1 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l6_T240K_rebinned.txt'
 #    datafile2 = str(raw_input('Enter the name of data file to load:'))
-    datafile2 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l9_T240K.txt'
+    datafile2 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l6_T240K.txt'
 #    resfile1 = str(raw_input('Enter the name of data file to load:'))
-    resfile1 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l6_T10K.txt'
+    resfile1 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l6_T10K_rebinned.txt'
 #    resfile2 = str(raw_input('Enter the name of data file to load:'))
-    resfile2 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l9_T10K.txt'
+    resfile2 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l6_T10K.txt'
     importedsampledata1 = np.loadtxt(datafile1, dtype='float')
+    errors1 = importrealdataerrors(0, np.array([1, 3, 5]), importedsampledata1.transpose())
     e1 = (ft.choose_data_from_file(importedsampledata1, 0)) #/ (10**3) for better viewing
-    print e1
     nt1 = len(e1)
-    t1 = (2*pi*e1) / 4.1657
-    print t1
-    t1 = np.linspace(-2*(pi * nt1) / ((4*abs(t1[0]))), 2*(pi * nt1) / ((4*abs(t1[0]))), nt1)
-    print t1
-    t1_1 = ft_calc_time(e1)
+    e1 = (2*pi*e1) / 4.1657
+    t1 = np.linspace(-2*(pi * nt1) / ((4*abs(e1[0]))), 2*(pi * nt1) / ((4*abs(e1[0]))), nt1)
+    t1_1 = np.arange(0, 200, 2.07) #DAVE
     resolution1 = np.loadtxt(resfile1, dtype='float')
     indicesfordata, alliftvalues, allresvalues, backgroundfunct, wobackground = run_the_transform_redata (e1, t1, importedsampledata1, resolution1, len(importedsampledata1[0]))
     indicesfordata1, alliftvalues1, allresvalues1, backgroundfunct1, wobackground1 = run_the_transform_redata (e1, t1_1, importedsampledata1, resolution1, len(importedsampledata1[0]))
     allIQT = [findIQT(t1, e1, importedsampledata1.transpose()[xi], resolution1.transpose()[xi]) for i,xi in enumerate(indicesfordata)]
     #t1 = ft_calc_time(e1)
     importedsampledata2 = np.loadtxt(datafile2, dtype='float')
-    e2 = (ft.choose_data_from_file(importedsampledata2, 0)) / (10**3)
+#    errors2 = importrealdataerrors(1, [], importedsampledata1.transpose())
+    e2 = (ft.choose_data_from_file(importedsampledata2, 0)) #/ (10**3)
+    e2 = (2*pi*e2) / 4.1657
     nt2 = len(e2)
     t2 = np.linspace(-2*(pi * nt2) / ((4*abs(e2[0]))), 2*(pi * nt2) / ((4*abs(e2[0]))), nt2)
+    t2_1 = np.arange(0, 200, 2.07) #DAVE
     resolution2 = np.loadtxt(resfile2, dtype='float')
-    indicesfordata2, alliftvalues2, allresvalues2, backgroundfunct2, wobackground2 = run_the_transform_redata (e2, t2, importedsampledata2, resolution2, len(importedsampledata2[0]))
+#    indicesfordata2, alliftvalues2, allresvalues2, backgroundfunct2, wobackground2 = run_the_transform_redata (e2, t2, importedsampledata2, resolution2, len(importedsampledata2[0]))
+    indicesfordata21, alliftvalues21, allresvalues21, backgroundfunct21, wobackground21 = run_the_transform_redata (e2, t2_1, importedsampledata2, resolution2, len(importedsampledata2[0]))
 #    t2 = ft_calc_time(e2)
-    allIQT2 = [findIQT(t2, e2, importedsampledata2.transpose()[xi], resolution2.transpose()[xi]) for i,xi in enumerate(indicesfordata2)]
+#    allIQT2 = [findIQT(t2, e2, importedsampledata2.transpose()[xi], resolution2.transpose()[xi]) for i,xi in enumerate(indicesfordata2)]
     pylab.clf()
-    NOTplotiftrealdata(e1, importedsampledata1.transpose()[5], resolution1.transpose()[5], alliftvalues[2], allresvalues[2], wobackground[2], abs(alliftvalues[2])/abs(allresvalues[2]), t1, nt1)
-    NOTplotiftrealdata(e1, importedsampledata1.transpose()[5], resolution1.transpose()[5], alliftvalues1[2], allresvalues1[2], wobackground1[2], abs(alliftvalues[2])/abs(allresvalues[2]), t1_1, nt1)
-#    NOTplotiftrealdata(e2, importedsampledata2.transpose()[5], resolution2.transpose()[5], alliftvalues2[2], allresvalues2[2], wobackground2[2], abs(alliftvalues2[2])/(allresvalues2[2]), t2, nt2)
+#    NOTplotiftrealdata(e1, importedsampledata1.transpose()[5], resolution1.transpose()[5], alliftvalues[2], allresvalues[2], wobackground[2], abs(alliftvalues[2])/abs(allresvalues[2]), t1, nt1)
+    NOTplotiftrealdata(e1, importedsampledata1.transpose()[5], resolution1.transpose()[5], alliftvalues1[2], allresvalues1[2], wobackground1[2], abs(alliftvalues1[2])/abs(allresvalues1[2]), t1_1, nt1)
+    NOTplotiftrealdata(e2, importedsampledata2.transpose()[5], resolution2.transpose()[5], alliftvalues21[2], allresvalues21[2], wobackground21[2], abs(alliftvalues21[2])/(allresvalues21[2]), t2_1, nt2)
 
 
 #demo_createddata()
