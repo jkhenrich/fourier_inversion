@@ -114,25 +114,42 @@ def run_the_transform_redata (e, t, pretransformedvalues, pretransformedres, num
     return indicesfordata, alliftvalues, allresvalues, backgroundfunct, wobackgroundvalues
 
     
-def run_the_transform (isredata, correctforbackground, runnumber = [0], e, t, sig = 0, portion = 0.1, data = 0, ddata = 0, wobackgroundvalues, alliftvalues, allresvalues):
+def run_the_transform (e, t, alliftvalues, wobackgroundvalues, correctforbackground = 0, runnumber = np.array([0]), sig = 0, portion = 0.1, data = np.array([0]), ddata = np.array([0])):
     #runnumber should start at 0
+    if data.shape == (1L,) and data[0] == 0:
+        artdata = 1
+    else:
+        artdata = 0
+    if runnumber.shape == (1L,) and runnumber[0] == 0:
+        onerunnoerrors = 1
+    else:
+        onerunnoerrors = 0
+    ne = len(e)
     point_means = np.zeros_like(t, dtype = 'complex')
     point_stds = np.zeros_like(t, dtype = 'complex')
     for i in runnumber:
-        if isredata == 0:
+        if artdata == 1:
             data = dc.add_noise(dc.convolve(e,sig))
             if correctforbackground == 1:
-                data = addlinearbackground(0.55, 0.05, convoi, e)
+                data = addlinearbackground(0.55, 0.05, data, e)
         valuestofft = data
         if correctforbackground == 1:
             aproxx = np.append(e[:int(ne*portion)], e[-int(ne*portion):])
             aproxy = np.append(data[:int(ne*portion)], data[-int(ne*portion):])
             polymodel = ws.wpolyfit(aproxx, aproxy, degree=1)
             valuestofft = abs(data - polymodel(e))
-        if isredata == 1:
+        if artdata == 0 and onerunnoerrors == 0:
             valuestofft = valuestofft + np.random.normal(size = ddata.shape)*ddata
         iftconvoi = ft.inversetransform(e, valuestofft, t)
         alliftvalues[runnumber] = iftconvoi
+        point_means +=  iftconvoi
+    if onerunnoerrors == 1:
+        return alliftvalues
+    else:
+      point_means = (1 / len(runnumber))*point_means
+      point_stds = [find_stds(alliftvalues.transpose()[i]-point_means[i], len(runnumber)) for i in np.arange(ne)]
+      point_stds = np.array(point_stds, dtype='complex')
+      return runnumber, alliftvalues, point_means, e, t, point_stds, data 
         
     
         
@@ -170,7 +187,7 @@ def plot_transform_run(number_of_runs, t, point_means, point_stds):
 #        pylab.plot(t, allvalues[i], '.')
     pylab.errorbar(t, point_means, yerr=point_stds)
     
-def importrealdataerrors(allrows, rows, datafile):    
+def importrealdataerrors(allrows, datafile, rows = np.array([1])):    
     if allrows == 0:
         print np.arange(len(rows))
         errors = [datafile[xi + 1] for i, xi in enumerate(rows)]
@@ -212,7 +229,7 @@ def plotiftrealdata(e, data, resolution, transformeddata, resolutiont, IQT, t, n
 
     
 def NOTplotiftrealdata(e, data, resolution, transformeddata, resolutiont, wobackground, IQT, t, nt):
-    e = abs(e)
+    #e = abs(e)
     pylab.subplot(1,3,1)
     pylab.plot(e, data, '-o', label='Original Data')
     pylab.plot(e, resolution, '-o', label='Original Resolution')
@@ -444,9 +461,10 @@ def demo_realdata_corr4background():
 #    resfile2 = str(raw_input('Enter the name of data file to load:'))
     resfile2 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l6_T10K.txt'
     importedsampledata1 = np.loadtxt(datafile1, dtype='float')
-    errors1 = importrealdataerrors(0, np.array([1, 3, 5]), importedsampledata1.transpose())
+    errors1 = importrealdataerrors(0, importedsampledata1.transpose(), np.array([1, 3, 5]))
     e1 = (ft.choose_data_from_file(importedsampledata1, 0)) #/ (10**3) for better viewing
     nt1 = len(e1)
+    print len(importedsampledata1[0])
     e1 = (2*pi*e1) / 4.1657
     t1 = np.linspace(-2*(pi * nt1) / ((4*abs(e1[0]))), 2*(pi * nt1) / ((4*abs(e1[0]))), nt1)
     t1_1 = np.arange(0, 200, 2.07) #DAVE
@@ -456,7 +474,7 @@ def demo_realdata_corr4background():
     allIQT = [findIQT(t1, e1, importedsampledata1.transpose()[xi], resolution1.transpose()[xi]) for i,xi in enumerate(indicesfordata)]
     #t1 = ft_calc_time(e1)
     importedsampledata2 = np.loadtxt(datafile2, dtype='float')
-#    errors2 = importrealdataerrors(1, [], importedsampledata1.transpose())
+#    errors2 = importrealdataerrors(1, importedsampledata1.transpose())
     e2 = (ft.choose_data_from_file(importedsampledata2, 0)) #/ (10**3)
     e2 = (2*pi*e2) / 4.1657
     nt2 = len(e2)
@@ -472,6 +490,30 @@ def demo_realdata_corr4background():
     NOTplotiftrealdata(e1, importedsampledata1.transpose()[5], resolution1.transpose()[5], alliftvalues1[2], allresvalues1[2], wobackground1[2], abs(alliftvalues1[2])/abs(allresvalues1[2]), t1_1, nt1)
     NOTplotiftrealdata(e2, importedsampledata2.transpose()[5], resolution2.transpose()[5], alliftvalues21[2], allresvalues21[2], wobackground21[2], abs(alliftvalues21[2])/(allresvalues21[2]), t2_1, nt2)
 
+def testnewftalg_artdata():
+    e_end = 1.5
+    ne = 2251
+    sigma = 0.01
+    number_of_runs, alliftvalues, point_means, e, t, point_stds, pretransformedvalues  = run_the_transform_artdata(e_end, ne, sigma, 100)
+    alliftvaluesch = np.ndarray(shape = (number_of_runs, ne), dtype=complex)
+    runnumber, alliftvaluesch, point_meansch, ech, tch, point_stdsch, datach  = run_the_transform (e, t, alliftvaluesch, [0], runnumber = np.arange(number_of_runs), sig = sigma)
+    assert np.all(abs(point_means - point_meansch) < 0.001), "max err: %g"%max(abs(point_means-point_meansch))
+    assert np.all(abs(point_stds - point_stdsch) < 0.001), "max err: %g"%max(abs(point_stds-point_stdsch))
+    
+def testneftalg_redata():
+    datafile1 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l6_T240K_rebinned.txt'
+    resfile1 = r'D:\Users\jkh\Documents\reduced_data_fromAntonio\fukuoka_l6_T10K_rebinned.txt'
+    importedsampledata1 = np.loadtxt(datafile1, dtype='float')
+    errors1 = importrealdataerrors(1, importedsampledata1.transpose())
+    e1 = (ft.choose_data_from_file(importedsampledata1, 0))
+    nt1 = len(e1)
+    e1 = (2*pi*e1) / 4.1657
+    t1 = np.linspace(-2*(pi * nt1) / ((4*abs(e1[0]))), 2*(pi * nt1) / ((4*abs(e1[0]))), nt1)
+    resolution1 = np.loadtxt(resfile1, dtype='float')
+    indicesfordata, alliftvalues, allresvalues, backgroundfunct, wobackground = run_the_transform_redata (e1, t1, importedsampledata1, resolution1, len(importedsampledata1[0]))
+    
+    #for 
+    runnumber, alliftvalues, point_means, e, t, point_stds, data = run_the_transform (e1, t1, alliftvalues, wobackgroundvalues, correctforbackground = 0, runnumber = np.array([0]), sig = 0, portion = 0.1, data = np.array([0]), ddata = np.array([0]))
 
 #demo_createddata()
 demo_realdata_corr4background()
@@ -479,4 +521,5 @@ demo_realdata_corr4background()
 #testofoutput()
 #dc.export_data_csv(np.vstack([np.linspace((-pi*751)/(4*.5), (pi*751)/(4*.5), 751), np.linspace((-pi*1501)/(4*1), (pi*1501)/(4*1),1501), np.linspace((-pi*2251)/(4*1.5), (pi*2251)/(4*1.5), 2251), np.linspace((-pi*5253)/(4*3.5), (pi*5253)/(4*3.5), 5253)]).transpose(), 't201579_01')
 #graphingofoutput()
+#testnewftalg_artdata()
 print 'orig'
