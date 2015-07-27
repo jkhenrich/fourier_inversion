@@ -78,82 +78,110 @@ def run_the_transform_artdata (e_end, ne, sig, number_of_runs):
     point_stds = np.array(point_stds, dtype='complex')
     return number_of_runs, alliftvalues, point_means, e, t, point_stds, pretransformedvalues#, allvalues
     
-def run_the_transform_redata (e, t, pretransformedvalues, pretransformedres, number_of_runs): #make sure pretranssformed values is in columns
+def run_the_transform_redata (e, t, pretransformedvalues, pretransformedres, number_of_runs, runway = 0): #make sure pretranssformed values is in columns
     ne = len(e)
     columnindices = np.arange(number_of_runs)
     indicesfordata = np.where(columnindices %2 == 1)[0]    
     alliftvalues = np.ndarray(shape = (len(indicesfordata), len(t)), dtype=complex)
     allresvalues = np.empty_like(alliftvalues)
     wobackgroundvalues = np.empty((len(indicesfordata), ne))
+    wobackgroundvalues_res = np.empty((len(indicesfordata), ne))
     backgroundfunct = []
-    portion = 0.1
-    for i, xi in enumerate(indicesfordata):
-        convoi = ft.choose_data_from_file(pretransformedvalues, xi)
-        convoires = ft.choose_data_from_file(pretransformedres, xi)
-        '''
-        aproxx = np.append(e[:int(ne*portion)], e[-int(ne*portion):])
-        aproxy = np.append(convoi[:int(ne*portion)], convoi[-int(ne*portion):])
-        polymodel = ws.wpolyfit(aproxx, aproxy, degree=1)
-        valuestofft = abs(convoi - polymodel(e))
-        '''
-        valuestofft = convoi
-        wobackgroundvalues[i] = valuestofft
-        iftconvoi = ft.inversetransform(e, valuestofft, t)
-#        iftconvoi = abs(iftconvoi)
-        alliftvalues[i] = iftconvoi
-        '''
-        aproxyres = np.append(convoires[:int(ne*portion)], convoires[-int(ne*portion):])
-        polymodelres = ws.wpolyfit(aproxx, aproxyres, degree=1)
-        restofft = abs(convoires - polymodelres(e))
-        '''
-        restofft = convoires
-        iftconvoires = ft.inversetransform(e, restofft, t)
-#        iftconvoires = abs(iftconvoires)
-        allresvalues[i] = iftconvoires
-#        backgroundfunct.append([polymodel, polymodelres])
+    percent = 0.1
+    if runway == 0:
+        for i, xi in enumerate(indicesfordata):
+            convoi = ft.choose_data_from_file(pretransformedvalues, xi)
+            convoires = ft.choose_data_from_file(pretransformedres, xi)
+            '''
+            aproxx = np.append(e[:int(ne*portion)], e[-int(ne*portion):])
+            aproxy = np.append(convoi[:int(ne*portion)], convoi[-int(ne*portion):])
+            polymodel = ws.wpolyfit(aproxx, aproxy, degree=1)
+            valuestofft = abs(convoi - polymodel(e))
+            '''
+            valuestofft = convoi
+            wobackgroundvalues[i] = valuestofft
+            iftconvoi = ft.inversetransform(e, valuestofft, t)
+#           iftconvoi = abs(iftconvoi)
+            alliftvalues[i] = iftconvoi
+            '''
+            aproxyres = np.append(convoires[:int(ne*portion)], convoires[-int(ne*portion):])
+            polymodelres = ws.wpolyfit(aproxx, aproxyres, degree=1)
+            restofft = abs(convoires - polymodelres(e))
+            '''
+            restofft = convoires
+            iftconvoires = ft.inversetransform(e, restofft, t)
+#           iftconvoires = abs(iftconvoires)
+            allresvalues[i] = iftconvoires
+#           backgroundfunct.append([polymodel, polymodelres])
+    if runway == 1:
+        alliftvalues = np.ndarray(shape = (2*len(indicesfordata), len(t)), dtype=complex)
+        allresvalues = np.empty_like(alliftvalues)
+        for i, xi in enumerate(indicesfordata):
+            convoi = ft.choose_data_from_file(pretransformedvalues, xi)
+            convoierrors = ft.choose_data_from_file(pretransformedvalues, xi + 1)
+            convoires = ft.choose_data_from_file(pretransformedres, xi)
+            convoireserrors = ft.choose_data_from_file(pretransformedres, xi + 1)
+            runnumber, alliftvaluesforxi, point_means, point_stds, wobackground = run_the_transform (e, t, alliftvalues, convoi, convoierrors, runnumber = 1, portion = percent)
+            runnumber_res, alliftvaluesforxi_res, point_means_res, point_stds_res, wobackground_res = run_the_transform (e, t, alliftvalues, convoires, convoireserrors, runnumber = 1, portion = percent)
+            alliftvalues[xi - 1] = point_means
+            alliftvalues[xi] = point_stds
+            wobackgroundvalues[i] = wobackground
+            allresvalues[xi - 1] = point_means_res
+            allresvalues[xi] = point_stds_res
+            wobackgroundvalues_res[i] = wobackground_res
     return indicesfordata, alliftvalues, allresvalues, backgroundfunct, wobackgroundvalues
 
     
-def run_the_transform (e, t, alliftvalues, wobackgroundvalues, correctforbackground = 0, runnumber = np.array([0]), sig = 0, portion = 0.1, data = np.array([0]), ddata = np.array([0])):
-    #runnumber should start at 0
-    if data.shape == (1L,) and data[0] == 0:
-        artdata = 1
-    else:
-        artdata = 0
-    if runnumber.shape == (1L,) and runnumber[0] == 0:
-        onerunnoerrors = 1
-    else:
-        onerunnoerrors = 0
+def run_the_transform (e, t, alliftvalues, data, ddata, correctforbackground = 0, runnumber = 1, portion = 0.1):
+    #runnumber should at minimum be 1
     ne = len(e)
     point_means = np.zeros_like(t, dtype = 'complex')
     point_stds = np.zeros_like(t, dtype = 'complex')
-    for i in runnumber:
-        if artdata == 1:
-            data = dc.add_noise(dc.convolve(e,sig))
-            if correctforbackground == 1:
-                data = addlinearbackground(0.55, 0.05, data, e)
-        valuestofft = data
-        if correctforbackground == 1:
-            aproxx = np.append(e[:int(ne*portion)], e[-int(ne*portion):])
-            aproxy = np.append(data[:int(ne*portion)], data[-int(ne*portion):])
-            polymodel = ws.wpolyfit(aproxx, aproxy, degree=1)
-            valuestofft = abs(data - polymodel(e))
-        if artdata == 0 and onerunnoerrors == 0:
+    valuestofft = data.copy()
+    wobackground = np.empty_like(e)
+    if correctforbackground == 1:
+        valuestofft = correctforbackground(e, data, portion)
+        wobackground = valuestofft.copy()
+    for i in range(runnumber):
+        if runnumber == 1:
             valuestofft = valuestofft + np.random.normal(size = ddata.shape)*ddata
         iftconvoi = ft.inversetransform(e, valuestofft, t)
         alliftvalues[runnumber] = iftconvoi
         point_means +=  iftconvoi
-    if onerunnoerrors == 1:
-        return alliftvalues
+    if runnumber == 1:
+        point_means = (1 / runnumber)*point_means
+        point_stds = [find_stds(alliftvalues.transpose()[i]-point_means[i], runnumber) for i in np.arange(ne)]
+        point_stds = np.array(point_stds, dtype='complex')
+        return runnumber, alliftvalues, point_means, point_stds, wobackground   
     else:
-      point_means = (1 / len(runnumber))*point_means
-      point_stds = [find_stds(alliftvalues.transpose()[i]-point_means[i], len(runnumber)) for i in np.arange(ne)]
-      point_stds = np.array(point_stds, dtype='complex')
-      return runnumber, alliftvalues, point_means, e, t, point_stds, data 
+       return alliftvalues
+        
+def createbaseartdata(e, sig, numofruns, portion = 0.1, backgroundon = 0):
+    point_means = np.zeros_like(e, dtype = 'complex')
+    point_stds = np.zeros_like(e, dtype = 'complex')
+    ne = len(e)
+    allvalues = np.ndarray(shape = (numofruns, ne), dtype=complex)
+    artdata = dc.convolve(e, sig)
+    for i in np.arange(numofruns):
+        artdata = dc.add_noise(artdata)
+        if backgroundon == 1:
+            artdata = addlinearbackground((0.55, 0.05, artdata, e))
+        point_means += artdata
+        allvalues[i] = artdata
+    point_means = (1 / numofruns)*point_means
+    point_stds = [find_stds(allvalues.transpose()[i]-point_means[i], numofruns) for i in np.arange(ne)]
+    point_stds = np.array(point_stds, dtype='complex')
+    return point_means, point_stds
         
     
-        
-        
+
+def correctforbackground(e, data, portion):
+    ne = len(e)
+    aproxx = np.append(e[:int(ne*portion)], e[-int(ne*portion):])
+    aproxy = np.append(data[:int(ne*portion)], data[-int(ne*portion):])
+    polymodel = ws.wpolyfit(aproxx, aproxy, degree=1)
+    valuestofft = abs(data - polymodel(e))
+    return valuestofft        
 
 def find_covariance(firstdesrowmmean, secdesrowmmean, number_of_runs):
     tosum = firstdesrowmmean * secdesrowmmean
@@ -511,15 +539,15 @@ def testneftalg_redata():
     t1 = np.linspace(-2*(pi * nt1) / ((4*abs(e1[0]))), 2*(pi * nt1) / ((4*abs(e1[0]))), nt1)
     resolution1 = np.loadtxt(resfile1, dtype='float')
     indicesfordata, alliftvalues, allresvalues, backgroundfunct, wobackground = run_the_transform_redata (e1, t1, importedsampledata1, resolution1, len(importedsampledata1[0]))
-    
-    #for 
-    runnumber, alliftvalues, point_means, e, t, point_stds, data = run_the_transform (e1, t1, alliftvalues, wobackgroundvalues, correctforbackground = 0, runnumber = np.array([0]), sig = 0, portion = 0.1, data = np.array([0]), ddata = np.array([0]))
+    indicesfordata_alt, alliftvalues_alt, allresvalues_alt, backgroundfunct_alt, wobackground_alt =  run_the_transform_redata (e1, t1, importedsampledata1, resolution1, len(importedsampledata1[0]), runway = 1)
+    assert np.all(abs(alliftvalues - alliftvalues_alt[indicesfordata_alt-1]) < 0.001), "max err: %g"%np.amax(abs(alliftvalues - alliftvalues_alt[indicesfordata_alt-1]))
 
 #demo_createddata()
-demo_realdata_corr4background()
+#demo_realdata_corr4background()
 #demo_stdtest()
 #testofoutput()
 #dc.export_data_csv(np.vstack([np.linspace((-pi*751)/(4*.5), (pi*751)/(4*.5), 751), np.linspace((-pi*1501)/(4*1), (pi*1501)/(4*1),1501), np.linspace((-pi*2251)/(4*1.5), (pi*2251)/(4*1.5), 2251), np.linspace((-pi*5253)/(4*3.5), (pi*5253)/(4*3.5), 5253)]).transpose(), 't201579_01')
 #graphingofoutput()
 #testnewftalg_artdata()
+testneftalg_redata()
 print 'orig'
