@@ -4,6 +4,7 @@
 #This program is public domain
 """
 Created on Mon Jun 01 15:39:51 2015
+This is a Committing Test
 
 @author: jkh
 Janelle Henrich
