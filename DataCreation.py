@@ -6,6 +6,24 @@
 Created on Mon Jun 01 15:39:51 2015
 
 @author: jkh
+Janelle Henrich
+SURF Program 2015
+Current Email: jh4162a@student.american.edu
+
+
+Overview of File: 
+The functions within this file are intended to create and 
+export simulated data. The program was written to simulate data is specfically 
+meant to mimic data from quasi-elastic neutron scattering, therefore creates
+data for a Lorentzian, Normal Gaussian Distribution, and the convolution of
+those two functions. These distributions require an energy vector and several
+other parameters to be created. The Lorentzian distribution represents a single 
+dynamic within a material in the energy domain, and requires a gamma which is 
+the parameter of that distribution. The Gaussian Distribution represents the
+instrument's resolution, and requires a sigma. The convolution of these two 
+distributions is what is coming off of the intruments. Instrumental effects can 
+also be added to the data through this code such as random noise following a 
+normal distribution and background. 
 """
 
 from __future__ import division

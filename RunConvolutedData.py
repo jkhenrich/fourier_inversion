@@ -262,7 +262,8 @@ def plotiftrealdata(e, data, resolution, transformeddata, resolutiont, IQT, t, n
     pylab.legend()
 
     
-def NOTplotiftrealdata(e, data, resolution, transformeddata, resolutiont, wobackground, IQT, t, nt):
+def NOTplotiftrealdata(e, data, resolution, transformeddata, resolutiont, wobackground, IQT, t, nt,
+                       label,format):
     #e = abs(e)
     pylab.subplot(1,3,1)
     pylab.plot(e, data, '-o', label='Original Data')
@@ -278,7 +279,9 @@ def NOTplotiftrealdata(e, data, resolution, transformeddata, resolutiont, woback
     pylab.ylabel('Intensity (counts/s)')
     pylab.legend()
     pylab.subplot(1,3,3)
-    pylab.plot(t, IQT, '-o', label = 'IQT')
+    pylab.plot(t, IQT, format, label = label)
+    pylab.xlabel('Time (ps)')
+    pylab.title('I(Q,t)')
 #    pylab.plot(t, IQT/IQT[len(t)//2], '-o', label = 'IQT')
     pylab.legend()
 
@@ -316,7 +319,7 @@ def demo_stdtest():
 #    dc.export_data_csv(np.vstack([np.float_(point_stds), np.float_(stdscalc)]), 'stdscalc2ways_data3')
 
 def demo_createddata():
-    number_of_runs, data, point_means, e, t, point_stds, pretransformedvalues = run_the_transform_artdata(1, 1501, 0.01, 100)
+    number_of_runs, data, point_means, e, t, point_stds, pretransformedvalues = run_the_transform_artdata(1.5, 2251, 0.01, 100)
     print len(point_stds)
     assert np.all(abs(np.imag(data)) < 1e-12), 'Cant cast data to float, maxcomplex: %g'%max(abs(np.imag(data)))
     assert np.all(abs(np.imag(point_means)) < 1e-12), 'Cant cast means to float, maxcomplex: %g'%max(abs(np.imag(point_means)))
@@ -335,13 +338,13 @@ def createresolutiondata(e, t, sig):
     
     
 def graphingofoutput():#Make sure to know the sigmas of the two data sets
-    datafile1 = r'D:\Users\jkh\Documents\Python Scripts\fourier_inversion\DataFiles\Created data-differing energy and resolution runs\meanstd2015710_04.csv'
+    datafile1 = r'D:\Users\jkh\Documents\Python Scripts\fourier_inversion\DataFiles\Created data-differing energy and resolution runs\meanstd2015803_01.csv'
     data1st = np.loadtxt(datafile1, delimiter=',')
-    edata1 = np.linspace(-4.5, 4.5, 2251)
+    edata1 = np.linspace(-1.5, 1.5, 2251)
     sigmadata1 =0.01
-    datafile2 = r'D:\Users\jkh\Documents\Python Scripts\fourier_inversion\DataFiles\Created data-differing energy and resolution runs\meanstd2015710_04.csv'
+    datafile2 = r'D:\Users\jkh\Documents\Python Scripts\fourier_inversion\DataFiles\Created data-differing energy and resolution runs\meanstd2015803_01.csv'
     datasecond = np.loadtxt(datafile2, delimiter=',')
-    edata2 =np.linspace(-4.5, 4.5, 6753)
+    edata2 =np.linspace(-1.5, 1.5, 2251)
     sigmadata2 = 0.01
     tdata1 = data1st[:, 0]
     print len(tdata1)
@@ -356,9 +359,9 @@ def graphingofoutput():#Make sure to know the sigmas of the two data sets
     if gauswbackground == 0:
         pylab.subplot(2,1,1)
         pylab.plot(tdata1, meandata1, '-o',
-                   label='Inverse Fourier Transform')
-        pylab.plot(tdata2, meandata2, '-o',
-                   label='Inverse Fourier Transform')             
+                   label='Inverse Fourier Transform of Convoluted Data with Noise')
+#        pylab.plot(tdata2, meandata2, '-o',
+#                   label='Inverse Fourier Transform')             
 #        pylab.plot(tdata1, abs(dc.add_noise(ft.fourier_transform_gaussian(tdata1, sigmadata1))), '-o', label = 'Resolution1')
 #        pylab.plot(tdata1, abs(dc.add_noise(ft.fourier_transform_gaussian(tdata2, sigmadata2))), '-o', label = 'Resolution2')
         pylab.xlabel('Time')
@@ -369,8 +372,8 @@ def graphingofoutput():#Make sure to know the sigmas of the two data sets
  #       pylab.plot(tdata2, meandata2, '-o', label='means of data2')
         pylab.subplot(2, 1,2)
         pylab.ylim(0,5)
-        pylab.plot(tdata1, np.divide(abs(meandata1), abs(ft.fourier_transform_gaussian(tdata1, sigmadata1*2))), '-o', label='means of data1')
-        pylab.plot(tdata2, np.divide(abs(meandata2), abs(ft.fourier_transform_gaussian(tdata2, sigmadata2))), '-o', label='means of data2')
+        pylab.plot(tdata1, np.divide(abs(meandata1), abs(ft.fourier_transform_gaussian(tdata1, sigmadata1))), '-o', label='I(Q,T)')
+#        pylab.plot(tdata2, np.divide(abs(meandata2), abs(ft.fourier_transform_gaussian(tdata2, sigmadata2))), '-o', label='means of data2')
 #        pylab.plot(tdata1, abs(meandata1) / abs(ft.fourier_transform_gaussian(tdata1, sigmadata1)), '-o', label='means of data1')
 #        pylab.plot(tdata2, abs(meandata2) / abs(ft.fourier_transform_gaussian(tdata2, sigmadata2)), '-o', label='means of data2')    
 #        pylab.yscale('log')
@@ -521,8 +524,10 @@ def demo_realdata_corr4background():
 #    allIQT2 = [findIQT(t2, e2, importedsampledata2.transpose()[xi], resolution2.transpose()[xi]) for i,xi in enumerate(indicesfordata2)]
     pylab.clf()
 #    NOTplotiftrealdata(e1, importedsampledata1.transpose()[5], resolution1.transpose()[5], alliftvalues[2], allresvalues[2], wobackground[2], abs(alliftvalues[2])/abs(allresvalues[2]), t1, nt1)
-    NOTplotiftrealdata(e1, importedsampledata1.transpose()[5], resolution1.transpose()[5], alliftvalues1[2], allresvalues1[2], wobackground1[2], abs(alliftvalues1[2])/abs(allresvalues1[2]), t1_1, nt1)
-    NOTplotiftrealdata(e2, importedsampledata2.transpose()[5], resolution2.transpose()[5], alliftvalues21[2], allresvalues21[2], wobackground21[2], abs(alliftvalues21[2])/(allresvalues21[2]), t2_1, nt2)
+    NOTplotiftrealdata(e1, importedsampledata1.transpose()[5], resolution1.transpose()[5], alliftvalues1[2], allresvalues1[2], wobackground1[2], abs(alliftvalues1[2])/abs(allresvalues1[2]), t1_1, nt1,
+                       label = 'rebinned data', format = '-or')
+    NOTplotiftrealdata(e2, importedsampledata2.transpose()[5], resolution2.transpose()[5], alliftvalues21[2], allresvalues21[2], wobackground21[2], abs(alliftvalues21[2])/(allresvalues21[2]), t2_1, nt2,
+                       label = 'non-rebinned data', format = '-ob')
 
 def testnewftalg_artdata():
     e_end = 1.5
@@ -549,12 +554,14 @@ def testneftalg_redata():
     #indicesfordata_alt, alliftvalues_alt, allresvalues_alt, backgroundfunct_alt, wobackground_alt =  run_the_transform_redata (e1, t1, importedsampledata1, resolution1, len(importedsampledata1[0]), runnumber=100, runway = 1)
     assert np.all(abs(alliftvalues - alliftvalues_alt[indicesfordata_alt-1]) < 1e-12), "max err: %g"%np.amax(abs(alliftvalues - alliftvalues_alt[indicesfordata_alt-1]))
 
+font = {'family' : 'normal', 'weight' : 'regular', 'size'   : 16}
+pylab.rc('font', **font)
 #demo_createddata()
 #demo_realdata_corr4background()
 #demo_stdtest()
 #testofoutput()
 #dc.export_data_csv(np.vstack([np.linspace((-pi*751)/(4*.5), (pi*751)/(4*.5), 751), np.linspace((-pi*1501)/(4*1), (pi*1501)/(4*1),1501), np.linspace((-pi*2251)/(4*1.5), (pi*2251)/(4*1.5), 2251), np.linspace((-pi*5253)/(4*3.5), (pi*5253)/(4*3.5), 5253)]).transpose(), 't201579_01')
-#graphingofoutput()
+graphingofoutput()
 #testnewftalg_artdata()
-testneftalg_redata()
+#testneftalg_redata()
 print 'orig'
